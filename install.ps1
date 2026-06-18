@@ -3,16 +3,13 @@
   PicardWatch installer / launcher.
 
   Double-click install.bat, OR run from PowerShell:
-      .\install.ps1                       # interactive: prompts for paths + AcoustID key, dry-runs
-      .\install.ps1 -Launch watch         # ...and start the watcher at the end
-      .\install.ps1 -Unattended -Launch none `
-                    -InputPath D:\Music\Input -LibraryPath D:\Music\Library `
-                    -AcoustidKey XXXX -Autostart        # fully scripted, no prompts
+      .\install.ps1                  # set up, enable logon autostart, start the scanner (background)
+      .\install.ps1 -Launch none     # set up only; don't start the scanner now
+      .\install.ps1 -NoAutostart     # don't add the logon autostart shortcut
 
-  What it automates: venv, Python deps, the fpcalc (Chromaprint) binary into .\bin,
-  Picard detection (optional winget install), writing your answers into config.yaml,
-  an optional logon autostart task, and the first run. It cannot create your AcoustID
-  account/key for you — it just opens the page and accepts a pasted key.
+  It is non-interactive when config.yaml is already filled in: it provisions the venv +
+  deps + fpcalc, enables a logon autostart shortcut, and launches the watcher in the
+  background. It only prompts for an input/library folder or AcoustID key if still unset.
 #>
 [CmdletBinding()]
 param(
@@ -20,10 +17,10 @@ param(
     [string]$LibraryPath,
     [string]$AcoustidKey,
     [string]$PicardExe,
-    [switch]$Autostart,
+    [switch]$NoAutostart,
     [switch]$InstallPicard,
     [ValidateSet('none', 'dryrun', 'watch')]
-    [string]$Launch = 'dryrun',
+    [string]$Launch = 'watch',
     [switch]$Unattended
 )
 
@@ -97,8 +94,7 @@ else {
 & $fpcalc -version 2>$null | Out-Null
 if ($LASTEXITCODE -ne 0) { Warn "fpcalc did not run cleanly - your antivirus may have quarantined it." }
 
-# 5) Locate Picard ----------------------------------------------------------
-Say "Locating MusicBrainz Picard..."
+# 5) Locate Picard (optional; native tagging is the default engine) ----------
 $cands = @(
     $PicardExe,
     "$env:ProgramFiles\MusicBrainz Picard\picard.exe",
@@ -106,20 +102,14 @@ $cands = @(
     "$env:LOCALAPPDATA\Programs\MusicBrainz Picard\picard.exe"
 ) | Where-Object { $_ }
 $picard = $cands | Where-Object { Test-Path $_ } | Select-Object -First 1
-if (-not $picard) {
-    $doInstall = $InstallPicard -or (-not $Unattended -and (YesNo "Picard not found. Install it now via winget?"))
-    if ($doInstall) {
-        if (Get-Command winget -ErrorAction SilentlyContinue) {
-            Say "Installing Picard via winget..."
-            winget install --id MusicBrainz.Picard -e --accept-package-agreements --accept-source-agreements
-            $picard = $cands | Where-Object { Test-Path $_ } | Select-Object -First 1
-        }
-        else { Warn "winget unavailable. Install Picard from https://picard.musicbrainz.org" }
-    }
+if (-not $picard -and $InstallPicard -and (Get-Command winget -ErrorAction SilentlyContinue)) {
+    Say "Installing Picard via winget..."
+    winget install --id MusicBrainz.Picard -e --accept-package-agreements --accept-source-agreements
+    $picard = $cands | Where-Object { Test-Path $_ } | Select-Object -First 1
 }
-if ($picard) { Say "Picard: $picard" } else { Warn "Picard not found - set 'picard.exe' in config.yaml before importing." }
+if ($picard) { Say "Picard: $picard" } else { Say "Picard not found (optional; native tagging is the default engine)." }
 
-# 6) Write answers into config.yaml (preserves comments) ---------------------
+# 6) Configure config.yaml (only prompt for genuinely-missing values) --------
 $configPath = Join-Path $root 'config.yaml'
 if (-not (Test-Path $configPath)) {
     Copy-Item (Join-Path $root 'config.example.yaml') $configPath
@@ -130,16 +120,20 @@ function Set-Yaml($content, $key, $value) {
     $v = $value -replace '\\', '/'   # forward slashes are YAML-safe and pathlib-friendly
     return [regex]::Replace($content, "(?m)^(\s*$key\s*:\s*`")[^`"]*(`")", "`${1}$v`${2}")
 }
-if (-not $Unattended) {
-    if (-not $InputPath)   { $InputPath   = Read-Host "Input folder to watch   [blank = keep current]" }
-    if (-not $LibraryPath) { $LibraryPath = Read-Host "Plex library folder      [blank = keep current]" }
-    if (-not $AcoustidKey) {
-        Write-Host "A free AcoustID API key enables fingerprint matching." -ForegroundColor DarkCyan
-        if (YesNo "Open the AcoustID key signup page now?") { Start-Process 'https://acoustid.org/new-application' }
-        $AcoustidKey = Read-Host "Paste your AcoustID API key [blank = skip for now]"
-    }
+function Get-Yaml($content, $key) {
+    $m = [regex]::Match($content, "(?m)^\s*$key\s*:\s*`"([^`"]*)`"")
+    if ($m.Success) { return $m.Groups[1].Value } else { return "" }
 }
 $cfg = Get-Content $configPath -Raw
+if (-not $Unattended) {
+    if (-not $InputPath   -and ((Get-Yaml $cfg 'input')   -in @('', 'D:/Music/Input')))   { $InputPath   = Read-Host "Input folder to watch" }
+    if (-not $LibraryPath -and ((Get-Yaml $cfg 'library') -in @('', 'D:/Music/Library'))) { $LibraryPath = Read-Host "Plex library folder" }
+    if (-not $AcoustidKey -and ((Get-Yaml $cfg 'api_key') -in @('', 'CHANGE_ME'))) {
+        Write-Host "A free AcoustID API key enables fingerprint matching." -ForegroundColor DarkCyan
+        if (YesNo "Open the AcoustID key signup page now?") { Start-Process 'https://acoustid.org/new-application' }
+        $AcoustidKey = Read-Host "Paste your AcoustID API key"
+    }
+}
 $cfg = Set-Yaml $cfg 'input'   $InputPath
 $cfg = Set-Yaml $cfg 'library' $LibraryPath
 $cfg = Set-Yaml $cfg 'api_key' $AcoustidKey
@@ -148,11 +142,10 @@ Set-Content -Path $configPath -Value $cfg -Encoding UTF8
 Say "Updated config.yaml"
 if ($LibraryPath) { New-Item -ItemType Directory -Force ($LibraryPath) | Out-Null }
 
-# 7) Optional: autostart at logon -------------------------------------------
-$doAuto = $Autostart -or (-not $Unattended -and (YesNo "Auto-start the watcher every time you log in?"))
-if ($doAuto) {
-    # Use a Startup-folder shortcut (runs at logon in the user session, so the mapped
-    # input drive is available) — needs no Administrator rights, unlike Task Scheduler.
+# 7) Autostart at logon (on by default; no admin needed) ---------------------
+if (-not $NoAutostart) {
+    # Startup-folder shortcut: runs at logon in the user session (mapped drives available),
+    # needs no Administrator rights, unlike Task Scheduler.
     try {
         $pyw = Join-Path $root '.venv\Scripts\pythonw.exe'
         if (-not (Test-Path $pyw)) { $pyw = Join-Path $root '.venv\Scripts\python.exe' }
@@ -165,7 +158,6 @@ if ($doAuto) {
         $sc.Description = 'PicardWatch music importer'
         $sc.Save()
         Say "Autostart enabled (runs at logon): $lnk"
-        Say "  Disable later by deleting that shortcut."
     }
     catch { Warn "Could not create autostart shortcut: $($_.Exception.Message)" }
 }
@@ -173,16 +165,17 @@ if ($doAuto) {
 # 8) Launch -----------------------------------------------------------------
 Write-Host ""
 switch ($Launch) {
+    'watch' {
+        $pyw = Join-Path $root '.venv\Scripts\pythonw.exe'
+        if (-not (Test-Path $pyw)) { $pyw = $venvPy }
+        Start-Process -FilePath $pyw -ArgumentList 'run.py', '--watch' -WorkingDirectory $root -WindowStyle Hidden
+        Say "Scanner started in the background. Check progress with:  .\status.ps1"
+    }
     'dryrun' {
         Say "Dry-run (judges everything, writes review_report.html, MOVES NOTHING)..."
         & $venvPy (Join-Path $root 'run.py') --once --dry-run -v
-        Say "Done. Review decisions above / in review_report.html, then:  .\start-watch.ps1"
-    }
-    'watch' {
-        Say "Starting the watcher (Ctrl+C to stop)..."
-        & $venvPy (Join-Path $root 'run.py') --watch
     }
     'none' {
-        Say "Setup complete. Dry-run with:  .\.venv\Scripts\python.exe run.py --once --dry-run -v"
+        Say "Setup complete. Start the scanner with:  .\start-watch.ps1"
     }
 }

@@ -32,9 +32,7 @@ import acoustid
 import mutagen
 
 from .models import AlbumDecision, FileAnalysis, Track
-from .musicbrainz import (MBClient, album_artist, release_artist, release_genre,
-                          release_label_catalog, release_media, release_tracks,
-                          release_type, release_year)
+from .musicbrainz import MBClient, album_metadata, release_tracks
 from .state import State
 
 log = logging.getLogger("picardwatch.judge")
@@ -298,36 +296,10 @@ class Judge:
             reasons.append(f"file_count {n_files} != release tracks {s.track_count}")
 
         rel = s.rel
-        rg = rel.get("release-group", {}) or {}
-        albumartist = release_artist(rel)
-        is_comp = albumartist.strip().lower() == "various artists"
-        originaldate = rg.get("first-release-date") or rel.get("date") or ""
-        date = rel.get("date") or originaldate
-        aa_mbid, aa_sort = album_artist(rel)
-        label, catno = release_label_catalog(rel)
-        album_meta = {
-            "album": rel.get("title", ""),
-            "albumartist": albumartist,
-            "albumartist_sort": aa_sort,
-            "albumartist_mbid": aa_mbid,
-            "date": date,
-            "originaldate": originaldate,
-            "year": (originaldate or date or "")[:4],
-            "originalyear": (originaldate or "")[:4],
-            "type": release_type(rel),
-            "genre": release_genre(rel),
-            "label": label,
-            "catalognumber": catno,
-            "barcode": rel.get("barcode", ""),
-            "country": rel.get("country", ""),
-            "asin": rel.get("asin", ""),
-            "media": release_media(rel),
-            "mbid": s.mbid,
-            "release_group_id": rg.get("id", ""),
-            "is_compilation": is_comp,
-            "total_tracks": s.track_count,
-            "total_discs": len(rel.get("medium-list", [])) or 1,
-        }
+        album_meta = album_metadata(rel)   # single source of album-level tags (shared with --retag)
+        albumartist = album_meta["albumartist"]
+        aa_sort = album_meta["albumartist_sort"]
+        aa_mbid = album_meta["albumartist_mbid"]
         file_plan = []
         for i, track in sorted(s.assignment.items(), key=lambda kv: (kv[1].disc, kv[1].position)):
             file_plan.append({
