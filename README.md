@@ -14,6 +14,8 @@ Input\Album\ ─► watcher ─► judge (fpcalc+AcoustID+MB) ─► perfect? �
                                                          └─ not perfect ─► leave in place + review report
 ```
 
+**Docs:** [Architecture](docs/ARCHITECTURE.md) · [Design](docs/DESIGN.md)
+
 ## How "perfect" is decided
 An album is imported only when **all** of these hold (thresholds in `config.yaml`):
 - every release track is matched by a file (no missing tracks),
