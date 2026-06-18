@@ -1,0 +1,22 @@
+# Local config — contains your AcoustID key. Use config.example.yaml as the template.
+config.yaml
+
+# Virtual environment + downloaded binaries (the installer recreates these)
+.venv/
+bin/
+
+# Runtime state, caches, logs, reports, locks
+state.sqlite3
+*.sqlite3
+logs/
+*.log
+review_report.html
+*.lock
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Scratch / throwaway test files
+_*.py
+_test_input/

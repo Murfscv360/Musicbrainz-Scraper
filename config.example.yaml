@@ -1,0 +1,55 @@
+# PicardWatch configuration TEMPLATE.
+# Copy this file to config.yaml and fill in your values (config.yaml is git-ignored).
+# Paths accept forward slashes on Windows (pathlib normalises them).
+
+paths:
+  input:    "D:/Music/Input"        # watched for new album folders (one album = one subfolder)
+  library:  "D:/Music/Library"      # destination Plex music root; perfect albums are MOVED here
+  state_db: "./state.sqlite3"       # SQLite: decisions + MB/AcoustID response cache
+  log_dir:  "./logs"
+  report:   "./review_report.html"  # imperfect / duplicate albums are listed here
+
+acoustid:
+  api_key:   "CHANGE_ME"            # free application key: https://acoustid.org/new-application
+  min_score: 0.90                   # per-track fingerprint confidence to count a track as matched
+
+musicbrainz:
+  app_name:    "PicardWatch"
+  app_version: "0.1"
+  contact:     "you@example.com"    # REQUIRED by MusicBrainz; identifies your client in the User-Agent
+  ssl_mode:    relaxed              # strict | relaxed | none. 'relaxed' verifies chain + hostname but
+                                    # tolerates non-RFC-strict CA certs (needed when AV/proxy scans HTTPS).
+
+judge:
+  audio_extensions: [".flac", ".mp3", ".m4a", ".ogg", ".opus", ".wav", ".wv", ".ape"]
+  duration_tolerance_sec: 7         # fallback duration match when AcoustID can't ID a track
+  title_similarity: 0.85            # fallback fuzzy title-match threshold (0..1)
+  require_full_acoustid: false      # true = every track MUST be ID'd by fingerprint (no metadata fallback)
+  max_candidates: 8                 # how many fingerprint-voted releases to score before the tag fallback
+  fingerprint_workers: 4            # parallel fpcalc+AcoustID workers per album
+
+watcher:
+  stability_seconds:  20            # a folder must be untouched this long before it's processed
+  poll_interval_sec:  5
+  rescan_interval_sec: 900          # periodic full rescan backstop (also wakes on filesystem events)
+  ignore_suffixes: [".part", ".crdownload", ".!ut", ".tmp", ".filepart", ".aria2"]
+
+picard:                             # only used if you switch the tagging engine back to Picard
+  exe:        "C:/Program Files/MusicBrainz Picard/picard.exe"
+  config_ini: "./picard-batch.ini"
+  pause_after_lookup: 25
+  pause_after_save:   10
+  use_known_mbid:     true
+  timeout_sec:        300
+
+importer:                           # native tagging engine (default; no Picard required)
+  dedupe: true                      # skip duplicate downloads (identical re-posts removed; dup releases flagged)
+  delete_source: true               # after a successful move, delete the leftover source folder
+  embed_art: false                  # also embed cover INTO each file (cover.jpg is always saved); slow on hi-res
+  extra_files: [".log", ".cue"]     # also carry these alongside the audio into each album folder
+
+plex:
+  enabled: false
+  host:    "http://127.0.0.1:32400"
+  token:   "CHANGE_ME"              # https://support.plex.tv/articles/204059436
+  music_section_id: 0               # GET {host}/library/sections?X-Plex-Token=... to find the music section key
