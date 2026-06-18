@@ -21,8 +21,13 @@ from .models import AlbumDecision
 
 class State:
     def __init__(self, db_path: str | Path):
-        self.db = sqlite3.connect(str(db_path))
+        self.db = sqlite3.connect(str(db_path), timeout=30)
         self.db.row_factory = sqlite3.Row
+        try:
+            self.db.execute("PRAGMA journal_mode=WAL")   # readers (e.g. --status) don't block on writes
+            self.db.execute("PRAGMA busy_timeout=30000")
+        except sqlite3.Error:
+            pass
         self._init()
 
     def _init(self) -> None:
@@ -100,6 +105,23 @@ class State:
             (mbid, exclude_folder),
         ).fetchone()
         return row is not None
+
+    # --- progress / status --------------------------------------------------
+    def status_counts(self) -> dict:
+        rows = self.db.execute("SELECT status, COUNT(*) AS c FROM albums GROUP BY status").fetchall()
+        return {r["status"]: r["c"] for r in rows}
+
+    def imported_track_total(self) -> int:
+        row = self.db.execute(
+            "SELECT COALESCE(SUM(file_count), 0) AS t FROM albums WHERE status='imported'"
+        ).fetchone()
+        return int(row["t"] or 0)
+
+    def recent_rate_per_min(self, minutes: int = 15) -> float:
+        """Albums decided per minute over the last `minutes` (current pace, for ETA)."""
+        since = time.time() - minutes * 60
+        row = self.db.execute("SELECT COUNT(*) AS c FROM albums WHERE decided_at >= ?", (since,)).fetchone()
+        return (row["c"] or 0) / float(minutes)
 
     # --- generic response cache ---------------------------------------------
     def cache_get(self, key: str):

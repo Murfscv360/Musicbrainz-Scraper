@@ -151,16 +151,23 @@ if ($LibraryPath) { New-Item -ItemType Directory -Force ($LibraryPath) | Out-Nul
 # 7) Optional: autostart at logon -------------------------------------------
 $doAuto = $Autostart -or (-not $Unattended -and (YesNo "Auto-start the watcher every time you log in?"))
 if ($doAuto) {
+    # Use a Startup-folder shortcut (runs at logon in the user session, so the mapped
+    # input drive is available) — needs no Administrator rights, unlike Task Scheduler.
     try {
         $pyw = Join-Path $root '.venv\Scripts\pythonw.exe'
-        $action  = New-ScheduledTaskAction  -Execute $pyw -Argument 'run.py --watch' -WorkingDirectory $root
-        $trigger = New-ScheduledTaskTrigger -AtLogOn
-        $set     = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
-        Register-ScheduledTask -TaskName 'PicardWatch' -Action $action -Trigger $trigger -Settings $set `
-            -Description 'PicardWatch music importer' -Force | Out-Null
-        Say "Registered logon task 'PicardWatch'. (Remove with: Unregister-ScheduledTask PicardWatch)"
+        if (-not (Test-Path $pyw)) { $pyw = Join-Path $root '.venv\Scripts\python.exe' }
+        $lnk = Join-Path ([Environment]::GetFolderPath('Startup')) 'PicardWatch.lnk'
+        $sc = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk)
+        $sc.TargetPath = $pyw
+        $sc.Arguments = 'run.py --watch'
+        $sc.WorkingDirectory = $root
+        $sc.WindowStyle = 7   # minimised / hidden (pythonw has no console anyway)
+        $sc.Description = 'PicardWatch music importer'
+        $sc.Save()
+        Say "Autostart enabled (runs at logon): $lnk"
+        Say "  Disable later by deleting that shortcut."
     }
-    catch { Warn "Could not register scheduled task: $($_.Exception.Message)" }
+    catch { Warn "Could not create autostart shortcut: $($_.Exception.Message)" }
 }
 
 # 8) Launch -----------------------------------------------------------------

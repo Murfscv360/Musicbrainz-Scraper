@@ -18,7 +18,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from picardwatch import importer, plex, report
+from picardwatch import importer, plex, report, status
 from picardwatch.models import AlbumDecision
 from picardwatch.config import load_config
 from picardwatch.judge import Judge
@@ -34,6 +34,7 @@ def make_processor(cfg, state, judge, runner, dry_run, force=False):
     importer_cfg = getattr(cfg, "importer", None)
     dedupe = bool(getattr(importer_cfg, "dedupe", True))
     delete_source = bool(getattr(importer_cfg, "delete_source", True))
+    seen = {"n": 0}
 
     def process(folder) -> None:
         folder = Path(folder)
@@ -63,6 +64,9 @@ def make_processor(cfg, state, judge, runner, dry_run, force=False):
 
         log.info("Judging: %s", folder.name)
         decision = judge.evaluate(folder)
+        seen["n"] += 1
+        if seen["n"] % 20 == 0:
+            log.info("PROGRESS  %s", status.oneline(cfg, state))
 
         if not decision.perfect:
             log.info("  NOT perfect - %s  (leaving in place)", decision.reason or "no confident match")
@@ -125,6 +129,7 @@ def main() -> None:
     mode.add_argument("--once", action="store_true", help="scan all album folders once and exit")
     mode.add_argument("--watch", action="store_true", help="run the watcher daemon")
     mode.add_argument("--folder", help="process a single album folder and exit")
+    mode.add_argument("--status", action="store_true", help="print a progress snapshot (moved/remaining/ETA) and exit")
     ap.add_argument("--dry-run", action="store_true", help="judge + report only; never move files")
     ap.add_argument("--limit", type=int, default=0, help="with --once, process at most N folders (0 = all)")
     ap.add_argument("--force", action="store_true", help="re-judge even if this exact folder was decided before")
@@ -150,6 +155,9 @@ def main() -> None:
         _lock = _single_instance_lock(cfg)  # keep handle alive for the process lifetime
 
     state = State(cfg.paths.state_db)
+    if args.status:
+        print(status.render(cfg, state))
+        return
     judge = Judge(cfg, state)
     runner = PicardRunner(cfg)
     process = make_processor(cfg, state, judge, runner, args.dry_run, args.force)
