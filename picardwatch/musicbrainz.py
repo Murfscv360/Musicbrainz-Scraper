@@ -211,3 +211,37 @@ def release_media(rel: dict) -> str:
         if fmt:
             return fmt
     return ""
+
+
+def album_metadata(rel: dict) -> dict:
+    """Full album-level tag set built from a richly-included release dict."""
+    rg = rel.get("release-group", {}) or {}
+    albumartist = release_artist(rel)
+    aa_mbid, aa_sort = album_artist(rel)
+    label, catno = release_label_catalog(rel)
+    originaldate = rg.get("first-release-date") or rel.get("date") or ""
+    date = rel.get("date") or originaldate
+    media = rel.get("medium-list") or []
+    return {
+        "album": rel.get("title", ""),
+        "albumartist": albumartist,
+        "albumartist_sort": aa_sort,
+        "albumartist_mbid": aa_mbid,
+        "date": date,
+        "originaldate": originaldate,
+        "year": (originaldate or date or "")[:4],
+        "originalyear": (originaldate or "")[:4],
+        "type": release_type(rel),
+        "genre": release_genre(rel),
+        "label": label,
+        "catalognumber": catno,
+        "barcode": rel.get("barcode", ""),
+        "country": rel.get("country", ""),
+        "asin": rel.get("asin", ""),
+        "media": release_media(rel),
+        "mbid": rel.get("id", ""),
+        "release_group_id": rg.get("id", ""),
+        "is_compilation": albumartist.strip().lower() == "various artists",
+        "total_tracks": sum(len(m.get("track-list", [])) for m in media),
+        "total_discs": len(media) or 1,
+    }

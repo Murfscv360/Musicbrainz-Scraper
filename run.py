@@ -130,6 +130,7 @@ def main() -> None:
     mode.add_argument("--watch", action="store_true", help="run the watcher daemon")
     mode.add_argument("--folder", help="process a single album folder and exit")
     mode.add_argument("--status", action="store_true", help="print a progress snapshot (moved/remaining/ETA) and exit")
+    mode.add_argument("--retag", action="store_true", help="re-tag + re-organize the existing library to the current standard, then exit")
     ap.add_argument("--dry-run", action="store_true", help="judge + report only; never move files")
     ap.add_argument("--limit", type=int, default=0, help="with --once, process at most N folders (0 = all)")
     ap.add_argument("--force", action="store_true", help="re-judge even if this exact folder was decided before")
@@ -151,12 +152,16 @@ def main() -> None:
         log.info("DRY RUN - no files will be moved.")
 
     _lock = None
-    if args.once or args.watch:
+    if args.once or args.watch or args.retag:
         _lock = _single_instance_lock(cfg)  # keep handle alive for the process lifetime
 
     state = State(cfg.paths.state_db)
     if args.status:
         print(status.render(cfg, state))
+        return
+    if args.retag:
+        from picardwatch import retag
+        retag.retag_library(cfg, state, dry_run=args.dry_run)
         return
     judge = Judge(cfg, state)
     runner = PicardRunner(cfg)
