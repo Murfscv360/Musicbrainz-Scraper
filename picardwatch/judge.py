@@ -32,7 +32,9 @@ import acoustid
 import mutagen
 
 from .models import AlbumDecision, FileAnalysis, Track
-from .musicbrainz import MBClient, release_artist, release_tracks, release_type, release_year
+from .musicbrainz import (MBClient, album_artist, release_artist, release_genre,
+                          release_label_catalog, release_media, release_tracks,
+                          release_type, release_year)
 from .state import State
 
 log = logging.getLogger("picardwatch.judge")
@@ -301,13 +303,25 @@ class Judge:
         is_comp = albumartist.strip().lower() == "various artists"
         originaldate = rg.get("first-release-date") or rel.get("date") or ""
         date = rel.get("date") or originaldate
+        aa_mbid, aa_sort = album_artist(rel)
+        label, catno = release_label_catalog(rel)
         album_meta = {
             "album": rel.get("title", ""),
             "albumartist": albumartist,
+            "albumartist_sort": aa_sort,
+            "albumartist_mbid": aa_mbid,
             "date": date,
             "originaldate": originaldate,
             "year": (originaldate or date or "")[:4],
+            "originalyear": (originaldate or "")[:4],
             "type": release_type(rel),
+            "genre": release_genre(rel),
+            "label": label,
+            "catalognumber": catno,
+            "barcode": rel.get("barcode", ""),
+            "country": rel.get("country", ""),
+            "asin": rel.get("asin", ""),
+            "media": release_media(rel),
             "mbid": s.mbid,
             "release_group_id": rg.get("id", ""),
             "is_compilation": is_comp,
@@ -320,6 +334,9 @@ class Judge:
                 "path": analyses[i].path,
                 "title": track.title,
                 "artist": track.artist or albumartist,
+                "artist_sort": track.artist_sort or aa_sort,
+                "artist_mbid": track.artist_mbid or aa_mbid,
+                "isrc": track.isrc,
                 "position": track.position,
                 "disc": track.disc,
                 "recording_id": track.recording_id,

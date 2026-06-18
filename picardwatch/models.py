@@ -15,6 +15,9 @@ class Track:
     title: str
     length_ms: Optional[int]  # may be None if MB has no duration
     artist: str = ""          # track artist (matters for Various-Artists compilations)
+    artist_sort: str = ""     # "Beatles, The" — Plex sorting
+    artist_mbid: str = ""     # MusicBrainz artist id
+    isrc: str = ""            # recording ISRC
 
 
 @dataclass
