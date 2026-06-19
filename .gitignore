@@ -6,8 +6,8 @@ config.yaml
 bin/
 
 # Runtime state, caches, logs, reports, locks
-state.sqlite3
-*.sqlite3
+state.sqlite3*
+*.sqlite3*
 logs/
 *.log
 review_report.html
