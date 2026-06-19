@@ -15,13 +15,14 @@ rich metadata. Imperfect albums are left in place; duplicates are skipped.
 
 | | |
 |---|---|
-| Watcher | **running** (and set to auto-start at logon) |
-| Imported | ~76 albums (~778 tracks) |
-| In review | ~38 |
-| Duplicates skipped | ~76 |
+| Watcher | **running** (auto-starts at logon; resumes across reboots) |
+| Imported | 77 albums (788 tracks) |
+| In review | 38 |
+| Duplicates skipped | 78 |
 | Failed | 0 |
-| Processed | ~190 of ~4,531 |
+| Processed | 193 of ~4,531 |
 | Pace / ETA | ~0.4 albums/min → **multi-day** (≈ a week) for the full backlog |
+| Most recent fix | watcher freeze on an AV-dropped HTTPS connection → network timeout + MusicBrainz retry |
 
 > Numbers above are a point-in-time snapshot. **For live progress run `.\status.ps1`.**
 

@@ -16,6 +16,22 @@ Input\Album\ ─► watcher ─► judge (fpcalc+AcoustID+MB) ─► perfect? �
 
 **Docs:** [Handoff](HANDOFF.md) · [Architecture](docs/ARCHITECTURE.md) · [Design](docs/DESIGN.md)
 
+## Project status — _2026-06-18_
+
+**Deployed and actively importing.** The watcher runs through the backlog and then watches for new drops; it auto-starts at logon and resumes across reboots.
+
+| | |
+|---|---|
+| Stage | Bulk import in progress (multi-day run) |
+| Imported | **77 albums** (788 tracks) |
+| In review | 38 |
+| Duplicates skipped | 78 |
+| Failed | 0 |
+| Processed | 193 of ~4,531 |
+| Pace / ETA | ~0.4 albums/min → multi-day (≈ a week) for the full backlog |
+
+**Most recent:** fixed a watcher freeze caused by an antivirus-dropped HTTPS connection (added a network timeout + MusicBrainz retry). Full state, operating guide, and next steps are in **[HANDOFF.md](HANDOFF.md)**. For live numbers run `.\status.ps1`.
+
 ## How "perfect" is decided
 An album is imported only when **all** of these hold (thresholds in `config.yaml`):
 - every release track is matched by a file (no missing tracks),
