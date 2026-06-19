@@ -132,6 +132,7 @@ def main() -> None:
     mode.add_argument("--status", action="store_true", help="print a progress snapshot (moved/remaining/ETA) and exit")
     mode.add_argument("--retag", action="store_true", help="re-tag + re-organize the existing library to the current standard, then exit")
     mode.add_argument("--supervise", action="store_true", help="keep the watcher alive: (re)start run.py --watch whenever it stops or hangs")
+    mode.add_argument("--stop", action="store_true", help="ask a running supervisor/watcher to finish the current album and shut down cleanly")
     ap.add_argument("--dry-run", action="store_true", help="judge + report only; never move files")
     ap.add_argument("--limit", type=int, default=0, help="with --once, process at most N folders (0 = all)")
     ap.add_argument("--force", action="store_true", help="re-judge even if this exact folder was decided before")
@@ -139,6 +140,11 @@ def main() -> None:
     args = ap.parse_args()
 
     cfg = load_config(args.config)
+    if args.stop:
+        from picardwatch import control
+        control.request_stop(cfg)
+        print("Stop requested. The supervisor + watcher will finish the current album and shut down.")
+        return
     log_file = "supervisor.log" if args.supervise else "picardwatch.log"
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,

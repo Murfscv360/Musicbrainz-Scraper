@@ -18,6 +18,8 @@ from typing import Callable
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
+from . import control, power
+
 log = logging.getLogger("picardwatch.watcher")
 
 
@@ -54,29 +56,44 @@ def watch(cfg, handler: Callable[[Path], None]) -> None:
     observer = Observer()
     observer.schedule(_Handler(), str(input_root), recursive=True)
     observer.start()
-    log.info("Watching %s (Ctrl+C to stop)", input_root)
+    if bool(getattr(getattr(cfg, "supervisor", None), "keep_awake", True)):
+        power.keep_awake()
+    log.info("Watching %s (stop with: run.py --stop  or  stop.ps1)", input_root)
 
     try:
-        # Process whatever is already there once on startup.
-        _scan(input_root, cfg, handler)
         while True:
-            woke = wake.wait(timeout=cfg.watcher.rescan_interval_sec)
-            wake.clear()
-            if woke:
-                # Let a burst of writes accumulate before we look.
-                time.sleep(cfg.watcher.poll_interval_sec)
+            if control.stop_requested(cfg):
+                log.info("Stop requested - shutting down watcher.")
+                break
             _scan(input_root, cfg, handler)
+            if control.stop_requested(cfg):
+                log.info("Stop requested - shutting down watcher.")
+                break
+            # Wait for filesystem events or the rescan interval, waking every ~15s to
+            # re-check the stop flag so shutdown stays responsive even while idle.
+            waited = 0.0
+            interval = float(cfg.watcher.rescan_interval_sec)
+            while waited < interval and not control.stop_requested(cfg):
+                if wake.wait(timeout=min(15.0, interval - waited)):
+                    wake.clear()
+                    time.sleep(cfg.watcher.poll_interval_sec)
+                    break
+                waited += 15.0
     except KeyboardInterrupt:
         log.info("Stopping watcher.")
     finally:
         observer.stop()
         observer.join()
+        power.allow_sleep()
 
 
 def _scan(input_root: Path, cfg, handler: Callable[[Path], None]) -> None:
     children = [c for c in sorted(input_root.iterdir()) if c.is_dir()]
     log.info("Scanning %d folders in %s ...", len(children), input_root)
     for i, child in enumerate(children, 1):
+        if control.stop_requested(cfg):
+            log.info("Stop requested - halting scan.")
+            return
         if i % 200 == 0:
             log.info("  ...scanned %d/%d folders", i, len(children))  # heartbeat during the long sweep
         if not is_stable(child, cfg):

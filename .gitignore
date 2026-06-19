@@ -12,6 +12,7 @@ logs/
 *.log
 review_report.html
 *.lock
+*.stop
 
 # Python bytecode
 __pycache__/

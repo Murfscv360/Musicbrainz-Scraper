@@ -53,6 +53,7 @@ importer:                           # native tagging engine (default; no Picard 
 
 # Keep the watcher alive: `run.py --supervise` restarts run.py --watch whenever it stops or hangs.
 supervisor:
+  keep_awake: true                  # keep the PC awake while running (the display may still sleep)
   hang_timeout: 1200                # seconds with no watcher-log activity before it's restarted
   check_interval: 30                # how often the supervisor checks on the watcher
   restart_delay: 5                  # seconds before relaunching (exponential backoff on rapid failures)
