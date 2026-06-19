@@ -17,6 +17,7 @@ review_report.html
 __pycache__/
 *.pyc
 
-# Scratch / throwaway test files
+# Scratch / throwaway test files (but never the package __init__.py)
 _*.py
+!__init__.py
 _test_input/
