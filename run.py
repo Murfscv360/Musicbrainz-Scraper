@@ -102,10 +102,10 @@ def make_processor(cfg, state, judge, runner, dry_run, force=False):
     return process
 
 
-def _single_instance_lock(cfg):
-    """Hold an OS file lock so two --once/--watch runs can't clobber each other or the
-    SQLite state. The lock auto-releases when the process exits (even on a crash)."""
-    lock_path = Path(cfg.paths.state_db).resolve().parent / "picardwatch.lock"
+def _single_instance_lock(cfg, name="picardwatch.lock", label="--once/--watch"):
+    """Hold an OS file lock so two runs can't clobber each other or the SQLite state.
+    The lock auto-releases when the process exits (even on a crash)."""
+    lock_path = Path(cfg.paths.state_db).resolve().parent / name
     try:
         import msvcrt
     except ImportError:
@@ -117,7 +117,7 @@ def _single_instance_lock(cfg):
     try:
         msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
     except OSError:
-        log.error("Another PicardWatch --once/--watch is already running (lock: %s). Exiting.", lock_path)
+        log.error("Another PicardWatch %s is already running (lock: %s). Exiting.", label, lock_path)
         sys.exit(1)
     return handle
 
@@ -131,6 +131,7 @@ def main() -> None:
     mode.add_argument("--folder", help="process a single album folder and exit")
     mode.add_argument("--status", action="store_true", help="print a progress snapshot (moved/remaining/ETA) and exit")
     mode.add_argument("--retag", action="store_true", help="re-tag + re-organize the existing library to the current standard, then exit")
+    mode.add_argument("--supervise", action="store_true", help="keep the watcher alive: (re)start run.py --watch whenever it stops or hangs")
     ap.add_argument("--dry-run", action="store_true", help="judge + report only; never move files")
     ap.add_argument("--limit", type=int, default=0, help="with --once, process at most N folders (0 = all)")
     ap.add_argument("--force", action="store_true", help="re-judge even if this exact folder was decided before")
@@ -138,18 +139,25 @@ def main() -> None:
     args = ap.parse_args()
 
     cfg = load_config(args.config)
+    log_file = "supervisor.log" if args.supervise else "picardwatch.log"
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
         format="%(asctime)s %(levelname)-7s %(name)s: %(message)s",
         handlers=[
             logging.StreamHandler(),
-            logging.FileHandler(Path(cfg.paths.log_dir) / "picardwatch.log", encoding="utf-8"),
+            logging.FileHandler(Path(cfg.paths.log_dir) / log_file, encoding="utf-8"),
         ],
     )
     for _noisy in ("musicbrainzngs", "urllib3"):
         logging.getLogger(_noisy).setLevel(logging.WARNING)  # silence XML-parser / HTTP debug chatter
     if args.dry_run:
         log.info("DRY RUN - no files will be moved.")
+
+    if args.supervise:
+        from picardwatch import supervisor
+        _slock = _single_instance_lock(cfg, "picardwatch-supervisor.lock", "--supervise")  # noqa: F841
+        supervisor.supervise(cfg)
+        return
 
     _lock = None
     if args.once or args.watch or args.retag:

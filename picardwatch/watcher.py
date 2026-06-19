@@ -74,9 +74,11 @@ def watch(cfg, handler: Callable[[Path], None]) -> None:
 
 
 def _scan(input_root: Path, cfg, handler: Callable[[Path], None]) -> None:
-    for child in sorted(input_root.iterdir()):
-        if not child.is_dir():
-            continue
+    children = [c for c in sorted(input_root.iterdir()) if c.is_dir()]
+    log.info("Scanning %d folders in %s ...", len(children), input_root)
+    for i, child in enumerate(children, 1):
+        if i % 200 == 0:
+            log.info("  ...scanned %d/%d folders", i, len(children))  # heartbeat during the long sweep
         if not is_stable(child, cfg):
             log.debug("Not stable yet: %s", child.name)
             continue
