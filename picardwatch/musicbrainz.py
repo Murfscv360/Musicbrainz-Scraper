@@ -8,7 +8,9 @@ from re-fetching the same release on every scan.
 from __future__ import annotations
 
 import logging
+import socket
 import ssl
+import time
 from typing import Optional
 
 import musicbrainzngs
@@ -55,10 +57,15 @@ def install_ssl_mode(mode: str) -> None:
 class MBClient:
     def __init__(self, cfg, state: State):
         install_ssl_mode(getattr(cfg.musicbrainz, "ssl_mode", "relaxed"))
+        # A socket timeout stops a hung (antivirus-intercepted) connection from freezing the
+        # whole watcher — without it a stalled urllib read blocks forever.
+        socket.setdefaulttimeout(float(getattr(cfg.musicbrainz, "network_timeout", 30)))
         musicbrainzngs.set_useragent(
             cfg.musicbrainz.app_name, cfg.musicbrainz.app_version, cfg.musicbrainz.contact
         )
         musicbrainzngs.set_rate_limit(1.0, 1)  # 1 request/second
+        self.retries = int(getattr(cfg.musicbrainz, "retries", 2))
+        self.retry_backoff = float(getattr(cfg.musicbrainz, "retry_backoff", 3))
         self.state = state
 
     def get_release(self, mbid: str) -> Optional[dict]:
@@ -68,21 +75,27 @@ class MBClient:
         cached = self.state.cache_get(key)
         if cached is not None:
             return cached
-        rel = None
-        for includes in (_INCLUDES, _INCLUDES_FALLBACK):
-            try:
-                data = musicbrainzngs.get_release_by_id(mbid, includes=includes)
-                rel = data.get("release")
-                break
-            except musicbrainzngs.WebServiceError as exc:
-                log.warning("MB get_release(%s) failed: %s", mbid, exc)
-                return None
-            except Exception as exc:  # e.g. InvalidIncludeError -> retry with the fallback set
-                log.debug("MB include set rejected (%s); trying fallback", exc)
-                continue
+        rel = self._fetch_release(mbid)
         if rel is not None:
             self.state.cache_set(key, rel)
         return rel
+
+    def _fetch_release(self, mbid: str) -> Optional[dict]:
+        last = None
+        for attempt in range(self.retries + 1):
+            for includes in (_INCLUDES, _INCLUDES_FALLBACK):
+                try:
+                    return musicbrainzngs.get_release_by_id(mbid, includes=includes).get("release")
+                except musicbrainzngs.WebServiceError as exc:
+                    last = exc          # network/transient -> back off and retry the whole fetch
+                    break
+                except Exception as exc:  # e.g. InvalidIncludeError -> try the fallback includes now
+                    last = exc
+                    continue
+            if attempt < self.retries:
+                time.sleep(self.retry_backoff)
+        log.warning("MB get_release(%s) failed after %d tries: %s", mbid, self.retries + 1, last)
+        return None
 
     def search_releases(self, artist: str, album: str, tracks: Optional[int] = None,
                         limit: int = 5) -> list[str]:

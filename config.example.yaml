@@ -19,6 +19,9 @@ musicbrainz:
   contact:     "you@example.com"    # REQUIRED by MusicBrainz; identifies your client in the User-Agent
   ssl_mode:    relaxed              # strict | relaxed | none. 'relaxed' verifies chain + hostname but
                                     # tolerates non-RFC-strict CA certs (needed when AV/proxy scans HTTPS).
+  network_timeout: 30               # seconds; abort a hung HTTPS read so a flaky connection can't freeze the watcher
+  retries: 2                        # retry MusicBrainz on transient connection resets (WinError 10054)
+  retry_backoff: 3                  # seconds between retries
 
 judge:
   audio_extensions: [".flac", ".mp3", ".m4a", ".ogg", ".opus", ".wav", ".wv", ".ape"]
