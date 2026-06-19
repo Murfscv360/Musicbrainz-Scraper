@@ -36,7 +36,7 @@ rich metadata. Imperfect albums are left in place; duplicates are skipped.
 
 ## How to operate it
 
-Run from the project folder (`C:\Users\murfs\Documents\Claude Projects\picardwatch`):
+Run from the project folder:
 
 | Command | What it does |
 |---|---|
