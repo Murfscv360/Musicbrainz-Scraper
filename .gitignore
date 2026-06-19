@@ -21,3 +21,6 @@ __pycache__/
 _*.py
 !__init__.py
 _test_input/
+
+# generated source bundle (for uploading to a Claude Project)
+picardwatch-source.txt
