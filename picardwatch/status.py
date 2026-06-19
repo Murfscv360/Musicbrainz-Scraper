@@ -4,6 +4,7 @@ a --watch/--once run is in progress."""
 
 from __future__ import annotations
 
+import threading
 from pathlib import Path
 
 
@@ -20,19 +21,33 @@ def _fmt_eta(minutes) -> str:
     return f"{m}m"
 
 
+def _count_input_dirs(input_root: Path, timeout: float = 4.0):
+    """Count immediate subfolders, but give up after `timeout` so a busy network
+    drive can't hang the status query. Returns None if it didn't finish in time."""
+    result = {"n": None}
+
+    def run():
+        try:
+            result["n"] = sum(1 for c in input_root.iterdir() if c.is_dir())
+        except OSError:
+            result["n"] = None
+
+    th = threading.Thread(target=run, daemon=True)
+    th.start()
+    th.join(timeout)
+    return result["n"]
+
+
 def _remaining_eta(cfg, state):
     counts = state.status_counts()
     input_root = Path(cfg.paths.input)
-    total_dirs = 0
-    if input_root.exists():
-        try:
-            total_dirs = sum(1 for c in input_root.iterdir() if c.is_dir())
-        except OSError:
-            total_dirs = 0
+    total_dirs = _count_input_dirs(input_root) if input_root.exists() else 0
+    rate = state.recent_rate_per_min(15)
+    if total_dirs is None:        # listing timed out (drive busy) -> remaining unknown
+        return None, None, rate, None
     # imported folders are deleted; review/duplicate/failed remain on disk but won't reprocess
     decided_present = counts.get("review", 0) + counts.get("duplicate", 0) + counts.get("failed", 0)
     remaining = max(0, total_dirs - decided_present)
-    rate = state.recent_rate_per_min(15)
     eta = (remaining / rate) if rate > 0 else None
     return total_dirs, remaining, rate, eta
 
@@ -63,14 +78,19 @@ def is_run_active(cfg) -> bool:
 def oneline(cfg, state) -> str:
     c = state.status_counts()
     _, remaining, _, eta = _remaining_eta(cfg, state)
+    left = "?" if remaining is None else str(remaining)
+    eta_s = "?" if remaining is None else _fmt_eta(eta)
     return (f"{c.get('imported', 0)} albums / {state.imported_track_total()} tracks moved | "
             f"{c.get('review', 0)} review, {c.get('duplicate', 0)} dup | "
-            f"~{remaining} left | ETA {_fmt_eta(eta)}")
+            f"~{left} left | ETA {eta_s}")
 
 
 def render(cfg, state) -> str:
     c = state.status_counts()
     total, remaining, rate, eta = _remaining_eta(cfg, state)
+    total_s = "scan skipped (drive busy)" if total is None else f"{total} on disk"
+    rem_s = "n/a (drive busy — try when idle)" if remaining is None else f"~{remaining} (estimate)"
+    eta_s = "n/a" if remaining is None else _fmt_eta(eta)
     return "\n".join([
         "=== PicardWatch status ===",
         f"  run active        : {'YES' if is_run_active(cfg) else 'no'}",
@@ -78,9 +98,9 @@ def render(cfg, state) -> str:
         f"  left for review   : {c.get('review', 0)}",
         f"  duplicates        : {c.get('duplicate', 0)}",
         f"  failed            : {c.get('failed', 0)}",
-        f"  input folders     : {total} on disk",
-        f"  still to process  : ~{remaining} (estimate)",
+        f"  input folders     : {total_s}",
+        f"  still to process  : {rem_s}",
         f"  current pace      : {rate:.1f} albums/min",
-        f"  est. time left    : {_fmt_eta(eta)}",
+        f"  est. time left    : {eta_s}",
         "==========================",
     ])
