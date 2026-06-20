@@ -11,7 +11,7 @@ import logging
 import shutil
 from pathlib import Path
 
-from . import coverart, organizer, tagger
+from . import cleanup, coverart, organizer, tagger
 
 log = logging.getLogger("picardwatch.importer")
 
@@ -63,7 +63,11 @@ def import_album(decision, cfg, dry_run: bool = False) -> bool:
 
     complete = (moved == len(plan))
     if complete and getattr(importer_cfg, "delete_source", True):
-        shutil.rmtree(Path(decision.folder), ignore_errors=True)
+        # delete the leftover source folder AND prune now-empty parents (e.g. an emptied
+        # genre folder on the D: library), so no hollow skeleton is left behind.
+        pruned = cleanup.cleanup_after_import(decision.folder, cfg)
+        if pruned:
+            log.info("  Pruned %d empty parent folder(s) on the source drive.", pruned)
 
     if not cover:
         art_note = "  (no cover art found)"

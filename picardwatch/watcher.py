@@ -1,10 +1,14 @@
-"""Watch the input folder and hand stable album folders to a callback.
+"""Watch the input folder(s) and hand stable album folders to a callback.
 
 Event-driven (watchdog wakes us immediately on filesystem changes) with a periodic
 full rescan as a backstop. A folder is processed only once it is STABLE:
   * contains no in-progress download markers (.part, .crdownload, ...), and
   * nothing has been written to it for `stability_seconds`.
 This avoids grabbing a half-finished copy/torrent — the classic watch-folder bug.
+
+Multiple input roots are supported (primary `paths.input` plus `paths.extra_inputs`),
+and each root may be flat (Release/*.flac) or a nested library (Genre/Artist/Album/...);
+`discovery.find_albums` figures out which folders are actual albums.
 """
 
 from __future__ import annotations
@@ -18,7 +22,7 @@ from typing import Callable
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
-from . import control, power
+from . import cleanup, control, discovery, power
 
 log = logging.getLogger("picardwatch.watcher")
 
@@ -43,9 +47,12 @@ def is_stable(folder: Path, cfg) -> bool:
 
 
 def watch(cfg, handler: Callable[[Path], None]) -> None:
-    input_root = Path(cfg.paths.input)
-    if not input_root.exists():
-        raise SystemExit(f"Input folder does not exist: {input_root}")
+    roots = [Path(r) for r in discovery.input_roots(cfg)]
+    existing = [r for r in roots if r.exists()]
+    for missing in (r for r in roots if not r.exists()):
+        log.warning("Input folder does not exist (skipping): %s", missing)
+    if not existing:
+        raise SystemExit("No input folders exist: " + ", ".join(str(r) for r in roots))
 
     wake = threading.Event()
 
@@ -54,18 +61,34 @@ def watch(cfg, handler: Callable[[Path], None]) -> None:
             wake.set()
 
     observer = Observer()
-    observer.schedule(_Handler(), str(input_root), recursive=True)
+    for r in existing:
+        observer.schedule(_Handler(), str(r), recursive=True)
     observer.start()
     if bool(getattr(getattr(cfg, "supervisor", None), "keep_awake", True)):
         power.keep_awake()
-    log.info("Watching %s (stop with: run.py --stop  or  stop.ps1)", input_root)
+    log.info("Watching %d folder(s): %s  (stop with: run.py --stop  or  stop.ps1)",
+             len(existing), "; ".join(str(r) for r in existing))
+
+    # One-shot tidy of leftover empty husks in nested libraries (e.g. emptied genre
+    # folders from a previous run). Only the nested 'extra_inputs' are swept — the flat
+    # primary input rarely has husks and may be a slow network drive.
+    extras = {str(Path(r).resolve()) for r in (getattr(cfg.paths, "extra_inputs", []) or [])}
+    for r in existing:
+        try:
+            if str(r.resolve()) in extras:
+                cleanup.sweep_empty_dirs(r)
+        except Exception:
+            log.exception("Startup cleanup sweep failed for %s", r)
 
     try:
         while True:
             if control.stop_requested(cfg):
                 log.info("Stop requested - shutting down watcher.")
                 break
-            _scan(input_root, cfg, handler)
+            for r in existing:
+                if control.stop_requested(cfg):
+                    break
+                _scan(r, cfg, handler)
             if control.stop_requested(cfg):
                 log.info("Stop requested - shutting down watcher.")
                 break
@@ -87,19 +110,21 @@ def watch(cfg, handler: Callable[[Path], None]) -> None:
         power.allow_sleep()
 
 
-def _scan(input_root: Path, cfg, handler: Callable[[Path], None]) -> None:
-    children = [c for c in sorted(input_root.iterdir()) if c.is_dir()]
-    log.info("Scanning %d folders in %s ...", len(children), input_root)
-    for i, child in enumerate(children, 1):
+def _scan(root: Path, cfg, handler: Callable[[Path], None]) -> None:
+    log.info("Scanning %s ...", root)
+    n = 0
+    for album in discovery.find_albums(root, cfg.judge.audio_extensions):
         if control.stop_requested(cfg):
             log.info("Stop requested - halting scan.")
             return
-        if i % 200 == 0:
-            log.info("  ...scanned %d/%d folders", i, len(children))  # heartbeat during the long sweep
-        if not is_stable(child, cfg):
-            log.debug("Not stable yet: %s", child.name)
+        n += 1
+        if n % 200 == 0:
+            log.info("  ...%d album folders scanned in %s", n, root)  # heartbeat
+        if not is_stable(album, cfg):
+            log.debug("Not stable yet: %s", album.name)
             continue
         try:
-            handler(child)
+            handler(album)
         except Exception:
-            log.exception("Error processing %s", child)
+            log.exception("Error processing %s", album)
+    log.info("  Scan of %s complete (%d album folders).", root, n)

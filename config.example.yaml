@@ -4,6 +4,8 @@
 
 paths:
   input:    "D:/Music/Input"        # watched for new album folders (one album = one subfolder)
+  extra_inputs: []                  # optional extra roots to watch (flat OR nested Genre/Artist/Album),
+                                    # e.g. ["D:/MUSIC (PLEX)/Albums"]; reorganized INTO the library below
   library:  "D:/Music/Library"      # destination Plex music root; perfect albums are MOVED here
   state_db: "./state.sqlite3"       # SQLite: decisions + MB/AcoustID response cache
   log_dir:  "./logs"

@@ -31,18 +31,14 @@ def free_gb(path) -> float:
 
 
 def _low(cfg):
+    # Only the library (destination) matters — that's where files are written. An input
+    # drive being low is fine (we read from it / free it as albums move off).
     sp = getattr(cfg, "space", None)
     min_free = float(getattr(sp, "min_free_gb", 10))
-    seen = set()
     offenders = []
-    for label, target in (("library", cfg.paths.library), ("input", cfg.paths.input)):
-        drive = str(Path(target).resolve().drive or target).lower()
-        if drive in seen:           # input + library on the same volume -> check once
-            continue
-        seen.add(drive)
-        g = free_gb(target)
-        if g < min_free:
-            offenders.append(f"{label} {target} = {g:.1f} GB free")
+    g = free_gb(cfg.paths.library)
+    if g < min_free:
+        offenders.append(f"library {cfg.paths.library} = {g:.1f} GB free")
     return offenders, min_free
 
 

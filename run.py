@@ -18,7 +18,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from picardwatch import diskspace, importer, plex, report, status
+from picardwatch import cleanup, discovery, diskspace, importer, plex, report, status
 from picardwatch.models import AlbumDecision
 from picardwatch.config import load_config
 from picardwatch.judge import Judge
@@ -58,7 +58,7 @@ def make_processor(cfg, state, judge, runner, dry_run, force=False):
                     folder=str(folder),
                     reason=f"identical content to {Path(orig_folder).name} ({orig_status})"))
                 if orig_status == "imported" and delete_source and not dry_run:
-                    shutil.rmtree(folder, ignore_errors=True)  # redundant exact copy of a library album
+                    cleanup.cleanup_after_import(str(folder), cfg)  # redundant exact copy -> remove + prune empty parents
                 report.write(cfg.paths.report, state.list_reviews())
                 return
 
@@ -186,22 +186,34 @@ def main() -> None:
     if args.folder:
         process(args.folder)
     elif args.once:
-        root = Path(cfg.paths.input)
-        if not root.exists():
-            log.error("Input folder does not exist: %s  (set paths.input in config.yaml)", root)
+        roots = [Path(r) for r in discovery.input_roots(cfg)]
+        existing = [r for r in roots if r.exists()]
+        for missing in (r for r in roots if not r.exists()):
+            log.warning("Input folder does not exist (skipping): %s", missing)
+        if not existing:
+            log.error("No input folders exist (set paths.input / paths.extra_inputs in config.yaml)")
             return
         done = 0
-        for child in sorted(root.iterdir()):
-            if not child.is_dir():
-                continue
-            try:
-                process(child)
-            except Exception:
-                log.exception("Error processing %s (skipping)", child.name)
-            done += 1
-            if args.limit and done >= args.limit:
-                log.info("Reached --limit %d; stopping.", args.limit)
+        reached_limit = False
+        for root in existing:
+            if reached_limit:
                 break
+            log.info("Scanning %s ...", root)
+            for album in discovery.find_albums(root, cfg.judge.audio_extensions):
+                try:
+                    process(album)
+                except Exception:
+                    log.exception("Error processing %s (skipping)", album)
+                done += 1
+                if args.limit and done >= args.limit:
+                    log.info("Reached --limit %d; stopping.", args.limit)
+                    reached_limit = True
+                    break
+        for root in existing:                         # tidy leftover empty husks once done
+            try:
+                cleanup.sweep_empty_dirs(root)
+            except Exception:
+                log.exception("Cleanup sweep failed for %s", root)
     elif args.watch:
         watch(cfg, process)
 
