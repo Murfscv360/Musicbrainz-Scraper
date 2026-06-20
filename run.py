@@ -18,7 +18,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from picardwatch import importer, plex, report, status
+from picardwatch import diskspace, importer, plex, report, status
 from picardwatch.models import AlbumDecision
 from picardwatch.config import load_config
 from picardwatch.judge import Judge
@@ -89,6 +89,8 @@ def make_processor(cfg, state, judge, runner, dry_run, force=False):
             state.record(str(folder), sig, "would_import", decision)
             return
 
+        if not diskspace.ensure_space(cfg):
+            return  # low disk space -> stop requested; this album is re-judged next run
         if importer.import_album(decision, cfg, dry_run=False):
             state.record(str(folder), sig, "imported", decision)
             log.info("  Imported OK.")

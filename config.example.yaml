@@ -58,6 +58,11 @@ supervisor:
   check_interval: 30                # how often the supervisor checks on the watcher
   restart_delay: 5                  # seconds before relaunching (exponential backoff on rapid failures)
 
+# Disk-space guard: never fill the drive while importing.
+space:
+  min_free_gb: 10                   # keep at least this many GB free on the library/input drive
+  on_low: pause                     # pause (wait for space, auto-resume) | stop (shut down cleanly)
+
 plex:
   enabled: false
   host:    "http://127.0.0.1:32400"
