@@ -34,7 +34,7 @@ judge:
 watcher:
   stability_seconds:  20            # a folder must be untouched this long before it's processed
   poll_interval_sec:  5
-  rescan_interval_sec: 900          # periodic full rescan backstop (also wakes on filesystem events)
+  rescan_interval_sec: 300          # poll the input folder every 5 min for new drops (also wakes on FS events)
   ignore_suffixes: [".part", ".crdownload", ".!ut", ".tmp", ".filepart", ".aria2"]
 
 picard:                             # only used if you switch the tagging engine back to Picard
