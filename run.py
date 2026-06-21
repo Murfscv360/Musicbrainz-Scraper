@@ -18,7 +18,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from picardwatch import cleanup, discovery, diskspace, importer, plex, report, status
+from picardwatch import cleanup, discovery, diskspace, importer, plex, report, status, winutil
 from picardwatch.models import AlbumDecision
 from picardwatch.config import load_config
 from picardwatch.judge import Judge
@@ -141,6 +141,7 @@ def main() -> None:
     ap.add_argument("-v", "--verbose", action="store_true")
     args = ap.parse_args()
 
+    winutil.suppress_child_windows()  # keep fpcalc/taskkill from flashing console windows
     cfg = load_config(args.config)
     if args.stop:
         from picardwatch import control

@@ -38,8 +38,9 @@ def import_album(decision, cfg, dry_run: bool = False) -> bool:
     cover = coverart.fetch_front(album.get("mbid", ""), contact) or _source_image(Path(decision.folder))
 
     dest.mkdir(parents=True, exist_ok=True)
+    log.info("  Importing %d tracks -> %s", len(plan), dest)  # marks import start for hang detection
     moved = 0
-    for item in plan:
+    for idx, item in enumerate(plan, 1):
         src = Path(item["path"])
         if not src.exists():
             log.warning("Planned file missing: %s", src)
@@ -54,6 +55,8 @@ def import_album(decision, cfg, dry_run: bool = False) -> bool:
             tagger.tag_file(str(target), item, album, cover if embed else None)
         except Exception as exc:  # never lose a moved file over a tag error
             log.warning("Tagging failed for %s: %s", target.name, exc)
+        if idx % 25 == 0:
+            log.info("  ...moved %d/%d tracks", idx, len(plan))  # heartbeat: a slow move isn't a hang
 
     if cover:
         (dest / coverart.cover_filename(cover)).write_bytes(cover)
