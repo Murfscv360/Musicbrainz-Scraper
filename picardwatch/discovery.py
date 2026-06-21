@@ -12,6 +12,7 @@ are walked through; album folders are not descended into.
 
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 
@@ -51,7 +52,17 @@ def _dir_has_audio(folder: Path, exts) -> bool:
 
 
 def input_roots(cfg) -> list:
-    """Primary input plus any extra inputs, in order."""
+    """Primary input plus any extra inputs, in order.
+
+    A `PICARDWATCH_ROOTS` env var (semicolon-separated paths) overrides config — used to
+    temporarily focus the watcher on a single root (e.g. a one-off D: blitz) without
+    editing config.yaml. Clearing the var on the next restart restores normal watching.
+    """
+    override = os.environ.get("PICARDWATCH_ROOTS")
+    if override:
+        roots = [r.strip() for r in override.split(";") if r.strip()]
+        if roots:
+            return roots
     roots = [cfg.paths.input]
     roots += list(getattr(cfg.paths, "extra_inputs", []) or [])
     return roots
