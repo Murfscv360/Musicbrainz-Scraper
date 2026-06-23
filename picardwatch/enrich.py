@@ -35,8 +35,12 @@ from mutagen.oggvorbis import OggVorbis
 
 log = logging.getLogger("picardwatch.enrich")
 
-# ffmpeg children must never flash a console window (run.py also patches Popen globally).
-_CF = getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0
+# ffmpeg children: no console window + BELOW_NORMAL priority, so the watcher (normal
+# priority) always wins the CPU. Keeps a parallel --analyze pass from slowing the scan.
+_CF = 0
+if os.name == "nt":
+    _CF = (getattr(subprocess, "CREATE_NO_WINDOW", 0)
+           | getattr(subprocess, "BELOW_NORMAL_PRIORITY_CLASS", 0))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -442,6 +446,17 @@ def write_sidecar(folder, data: dict, name: str) -> None:
     (Path(folder) / name).write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
+def _needs_tier2(sidecar, analyze: bool) -> bool:
+    """True if --analyze was asked but the existing sidecar holds only Tier-1 data."""
+    if not analyze:
+        return False
+    try:
+        data = json.loads(Path(sidecar).read_text(encoding="utf-8"))
+        return data.get("album", {}).get("loudness") is None
+    except Exception:
+        return True
+
+
 def enrich_library(cfg, analyze: bool = False, force: bool = False, limit: int = 0) -> None:
     """Walk the library and write an audiophile sidecar per album. Reads audio + writes
     sidecars only — never moves/retags/deletes — so it's safe to run alongside the watcher."""
@@ -467,8 +482,10 @@ def enrich_library(cfg, analyze: bool = False, force: bool = False, limit: int =
             try:
                 newest = max(p.stat().st_mtime for p in folder.rglob("*")
                              if p.is_file() and p.suffix.lower() in exts)
-                if sidecar.stat().st_mtime >= newest:
-                    continue                                  # up to date
+                # up to date — but if --analyze was asked and the sidecar only has Tier-1
+                # data, fall through and upgrade it with the ffmpeg measurements.
+                if sidecar.stat().st_mtime >= newest and not _needs_tier2(sidecar, analyze):
+                    continue
             except (ValueError, OSError):
                 pass
         try:
@@ -480,8 +497,9 @@ def enrich_library(cfg, analyze: bool = False, force: bool = False, limit: int =
             continue
         write_sidecar(folder, data, name)
         written += 1
-        if written % 25 == 0:
-            log.info("  ...%d sidecars written (%d albums scanned)", written, scanned)
+        alb = data["album"]
+        log.info("enriched %s  [dr=%s/%s%s]", folder.name, alb.get("dr"), alb.get("drSource") or "-",
+                 f", {alb['loudness']} LUFS" if alb.get("loudness") is not None else "")
         if limit and written >= limit:
             log.info("Reached --limit %d; stopping.", limit)
             break
