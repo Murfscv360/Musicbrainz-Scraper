@@ -134,6 +134,8 @@ def main() -> None:
     mode.add_argument("--status", action="store_true", help="print a progress snapshot (moved/remaining/ETA) and exit")
     mode.add_argument("--retag", action="store_true", help="re-tag + re-organize the existing library to the current standard, then exit")
     mode.add_argument("--enrich", action="store_true", help="write audiophile-enrichment sidecars (audiophile.json) for the library; add --analyze for ffmpeg loudness/DR/waveform")
+    mode.add_argument("--start-enrich", action="store_true", help="clear stop/done flags and launch the enrichment worker (Tier-2) in the background; it auto-restarts via the keepalive task")
+    mode.add_argument("--stop-enrich", action="store_true", help="ask the enrichment worker to finish its current album, stop, and not auto-restart")
     mode.add_argument("--supervise", action="store_true", help="keep the watcher alive: (re)start run.py --watch whenever it stops or hangs")
     mode.add_argument("--stop", action="store_true", help="ask a running supervisor/watcher to finish the current album and shut down cleanly")
     ap.add_argument("--dry-run", action="store_true", help="judge + report only; never move files")
@@ -164,10 +166,32 @@ def main() -> None:
     if args.dry_run:
         log.info("DRY RUN - no files will be moved.")
 
-    if args.enrich:
-        # Reads audio + writes per-album sidecars only (no lock, no state DB) -> safe
-        # to run alongside the live watcher.
+    if args.stop_enrich:
         from picardwatch import enrich
+        enrich.request_enrich_stop(cfg)
+        print("Enrichment stop requested - it will finish the current album, exit, and not auto-restart.")
+        return
+
+    if args.start_enrich:
+        import subprocess
+        from picardwatch import enrich
+        enrich.clear_enrich_flags(cfg)
+        proj = Path(__file__).resolve().parent
+        pyw = proj / ".venv" / "Scripts" / "pythonw.exe"
+        if not pyw.exists():
+            pyw = proj / ".venv" / "Scripts" / "python.exe"
+        flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+        subprocess.Popen([str(pyw), str(proj / "run.py"), "--enrich", "--analyze"],
+                         cwd=str(proj), creationflags=flags)
+        print("Enrichment started in the background (Tier-2). It auto-restarts if killed, and stops "
+              "itself when the whole library is done. Stop early with:  run.py --stop-enrich")
+        return
+
+    if args.enrich:
+        # Its own lock (separate from the watcher's) so two enrichers can't overlap and the
+        # keepalive can tell it's running. Reads audio + writes sidecars only.
+        from picardwatch import enrich
+        _elock = _single_instance_lock(cfg, "picardwatch-enrich.lock", "--enrich")  # noqa: F841
         enrich.enrich_library(cfg, analyze=args.analyze, force=args.force, limit=args.limit)
         return
 

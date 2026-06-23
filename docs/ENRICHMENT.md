@@ -20,6 +20,28 @@ python run.py --enrich --force      # rebuild sidecars even if they already exis
 - Logs go to `logs/enrich.log` (separate from the watcher's `picardwatch.log`).
 - Tune in `config.yaml` → `enrich:` (`sidecar` filename, `analyze_workers` for ffmpeg concurrency).
 
+## Run it continuously (auto-restart) and stop it
+
+For a long Tier-2 pass that survives an **antivirus kill**, use the *managed* commands
+instead of a bare `--enrich`:
+
+```bash
+python run.py --start-enrich   # clear flags + launch the Tier-2 worker in the background
+python run.py --stop-enrich    # finish the current album, stop, and stay stopped
+```
+
+- **Auto-restart:** the `PicardWatch-Keepalive` scheduled task (the same one that revives
+  the watcher) relaunches the worker within ~10 min if it dies — **unless** it has finished
+  or you stopped it. State is two flag files next to `state.sqlite3`:
+  - `picardwatch-enrich.done` — written after a clean full pass → keepalive leaves it down.
+  - `picardwatch-enrich.stop` — written by `--stop-enrich` → keepalive leaves it down until
+    you `--start-enrich` again (which clears both flags).
+- It holds `picardwatch-enrich.lock` while running, so the keepalive never starts a second copy.
+- **Resumable:** a relaunch skips up-to-date sidecars, so an AV kill costs only the
+  in-progress album. It also **stops itself** when the whole library is done (the `.done`
+  marker). Re-running later picks up newly-imported albums (Tier-1 sidecars auto-upgrade to Tier-2).
+- ffmpeg runs at **below-normal priority** with `analyze_workers: 1`, so it never starves the watcher.
+
 ## Tiers
 
 | | Source | Cost |

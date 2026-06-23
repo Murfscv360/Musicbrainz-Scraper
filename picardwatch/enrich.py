@@ -43,6 +43,38 @@ if os.name == "nt":
            | getattr(subprocess, "BELOW_NORMAL_PRIORITY_CLASS", 0))
 
 
+# ── run control: a stop flag + a done marker drive the keepalive self-heal ──────────
+#   * no done + no stop + not running  -> keepalive relaunches it (survives an AV kill)
+#   * done (clean full pass)           -> keepalive leaves it alone
+#   * stop (user asked)                -> worker exits, keepalive leaves it alone
+def _state_dir(cfg) -> Path:
+    return Path(cfg.paths.state_db).resolve().parent
+
+
+def enrich_stop_path(cfg) -> Path:
+    return _state_dir(cfg) / "picardwatch-enrich.stop"
+
+
+def enrich_done_path(cfg) -> Path:
+    return _state_dir(cfg) / "picardwatch-enrich.done"
+
+
+def enrich_stop_requested(cfg) -> bool:
+    return enrich_stop_path(cfg).exists()
+
+
+def request_enrich_stop(cfg) -> None:
+    enrich_stop_path(cfg).write_text("stop", encoding="utf-8")
+
+
+def clear_enrich_flags(cfg) -> None:
+    for p in (enrich_stop_path(cfg), enrich_done_path(cfg)):
+        try:
+            p.unlink()
+        except OSError:
+            pass
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # small parse helpers
 # ─────────────────────────────────────────────────────────────────────────────
@@ -472,10 +504,22 @@ def enrich_library(cfg, analyze: bool = False, force: bool = False, limit: int =
     if analyze and not ffmpeg_available():
         log.warning("ffmpeg not found on PATH — Tier-2 (loudness/LRA/true-peak/waveform) will be "
                     "skipped. Install ffmpeg and re-run with --analyze to enable it.")
+    if enrich_stop_requested(cfg):
+        log.info("Enrich stop flag is set — not running. Run `run.py --start-enrich` to resume.")
+        return
+    try:
+        enrich_done_path(cfg).unlink()        # in progress -> drop any stale done marker
+    except OSError:
+        pass
     log.info("Enriching library %s  (analyze=%s, workers=%d)%s",
              lib, analyze, workers, "" if not limit else f", limit={limit}")
     scanned = written = 0
+    completed = True
     for folder in discovery.find_albums(lib, exts):
+        if enrich_stop_requested(cfg):
+            log.info("Stop requested — exiting (no done marker; keepalive will NOT relaunch).")
+            completed = False
+            break
         scanned += 1
         sidecar = folder / name
         if not force and sidecar.exists():
@@ -501,7 +545,15 @@ def enrich_library(cfg, analyze: bool = False, force: bool = False, limit: int =
         log.info("enriched %s  [dr=%s/%s%s]", folder.name, alb.get("dr"), alb.get("drSource") or "-",
                  f", {alb['loudness']} LUFS" if alb.get("loudness") is not None else "")
         if limit and written >= limit:
-            log.info("Reached --limit %d; stopping.", limit)
+            log.info("Reached --limit %d; stopping (partial run, no done marker).", limit)
+            completed = False
             break
-    log.info("Enrichment complete: %d sidecar(s) written, %d albums scanned under %s",
-             written, scanned, lib)
+    if completed:
+        try:
+            enrich_done_path(cfg).write_text("done", encoding="utf-8")
+        except OSError:
+            pass
+        log.info("Enrichment COMPLETE: %d sidecar(s) written, %d scanned — done marker set "
+                 "(keepalive will not relaunch).", written, scanned)
+    else:
+        log.info("Enrichment stopped: %d sidecar(s) written, %d scanned under %s.", written, scanned, lib)
