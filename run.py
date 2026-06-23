@@ -133,10 +133,12 @@ def main() -> None:
     mode.add_argument("--folder", help="process a single album folder and exit")
     mode.add_argument("--status", action="store_true", help="print a progress snapshot (moved/remaining/ETA) and exit")
     mode.add_argument("--retag", action="store_true", help="re-tag + re-organize the existing library to the current standard, then exit")
+    mode.add_argument("--enrich", action="store_true", help="write audiophile-enrichment sidecars (audiophile.json) for the library; add --analyze for ffmpeg loudness/DR/waveform")
     mode.add_argument("--supervise", action="store_true", help="keep the watcher alive: (re)start run.py --watch whenever it stops or hangs")
     mode.add_argument("--stop", action="store_true", help="ask a running supervisor/watcher to finish the current album and shut down cleanly")
     ap.add_argument("--dry-run", action="store_true", help="judge + report only; never move files")
-    ap.add_argument("--limit", type=int, default=0, help="with --once, process at most N folders (0 = all)")
+    ap.add_argument("--limit", type=int, default=0, help="with --once/--enrich, process at most N folders (0 = all)")
+    ap.add_argument("--analyze", action="store_true", help="with --enrich: also run ffmpeg loudness/LRA/true-peak/waveform (slow; needs ffmpeg on PATH)")
     ap.add_argument("--force", action="store_true", help="re-judge even if this exact folder was decided before")
     ap.add_argument("-v", "--verbose", action="store_true")
     args = ap.parse_args()
@@ -148,7 +150,7 @@ def main() -> None:
         control.request_stop(cfg)
         print("Stop requested. The supervisor + watcher will finish the current album and shut down.")
         return
-    log_file = "supervisor.log" if args.supervise else "picardwatch.log"
+    log_file = "supervisor.log" if args.supervise else ("enrich.log" if args.enrich else "picardwatch.log")
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
         format="%(asctime)s %(levelname)-7s %(name)s: %(message)s",
@@ -161,6 +163,13 @@ def main() -> None:
         logging.getLogger(_noisy).setLevel(logging.WARNING)  # silence XML-parser / HTTP debug chatter
     if args.dry_run:
         log.info("DRY RUN - no files will be moved.")
+
+    if args.enrich:
+        # Reads audio + writes per-album sidecars only (no lock, no state DB) -> safe
+        # to run alongside the live watcher.
+        from picardwatch import enrich
+        enrich.enrich_library(cfg, analyze=args.analyze, force=args.force, limit=args.limit)
+        return
 
     if args.supervise:
         from picardwatch import supervisor

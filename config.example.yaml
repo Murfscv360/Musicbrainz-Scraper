@@ -65,6 +65,12 @@ space:
   min_free_gb: 10                   # keep at least this many GB free on the library/input drive
   on_low: pause                     # pause (wait for space, auto-resume) | stop (shut down cleanly)
 
+# Audiophile enrichment (opt-in: `python run.py --enrich [--analyze]`). Writes a per-album
+# audiophile.json sidecar; only reads audio + writes the sidecar (never moves/retags/deletes).
+enrich:
+  sidecar: "audiophile.json"        # per-album JSON the app reads (loudness/DR/bpm/key/waveform/...)
+  analyze_workers: 2                # parallel ffmpeg measurements under --analyze (raise on a big-RAM PC)
+
 plex:
   enabled: false
   host:    "http://127.0.0.1:32400"
