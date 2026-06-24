@@ -35,8 +35,8 @@ def fetch_front(release_mbid: str, contact: str = "") -> Optional[bytes]:
     url = f"https://coverartarchive.org/release/{release_mbid}/front"
     try:
         req = urllib.request.Request(url, headers={"User-Agent": ua})
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            data = resp.read()
+        with urllib.request.urlopen(req, timeout=8) as resp:   # short: a flaky CAA/SSL
+            data = resp.read()                                  # handshake mustn't stall the import
         return data or None
     except Exception as exc:  # 404 (no art) is common and fine
         log.info("No Cover Art Archive front image for %s (%s)", release_mbid, exc)
