@@ -71,6 +71,13 @@ enrich:
   sidecar: "audiophile.json"        # per-album JSON the app reads (loudness/DR/bpm/key/waveform/...)
   analyze_workers: 2                # parallel ffmpeg measurements under --analyze (raise on a big-RAM PC)
 
+# Audio Vault catalogue (opt-in: `python run.py --catalogue [--push]`). Builds collection.json
+# (artists/albums/tracks + audio quality + the audiophile.json enrichment) and pushes it.
+catalogue:
+  repo_dir: ""                      # local clone of the Audio Vault repo, e.g. "D:/code/Home-audio-catalogue"
+  file: "collection.json"           # written to the repo root; the Audio Vault web app reads this
+  name: "Audio Vault"
+
 plex:
   enabled: false
   host:    "http://127.0.0.1:32400"

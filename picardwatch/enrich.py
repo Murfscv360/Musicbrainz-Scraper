@@ -205,8 +205,11 @@ def _tagmap(path) -> dict:
 
 def tag_fields(path) -> dict:
     """Tier-1 fields for one file (mirrors audio-enrich.js tagFields)."""
-    tg = _tagmap(path)
+    return tag_fields_map(_tagmap(path))
 
+
+def tag_fields_map(tg: dict) -> dict:
+    """Tier-1 fields from an already-read normalized tag map (avoids re-opening the file)."""
     def pick(*keys):
         for k in keys:
             v = tg.get(k)

@@ -14,7 +14,7 @@ Input\Album\ ─► watcher ─► judge (fpcalc+AcoustID+MB) ─► perfect? �
                                                          └─ not perfect ─► leave in place + review report
 ```
 
-**Docs:** [Handoff](HANDOFF.md) · [Architecture](docs/ARCHITECTURE.md) · [Design](docs/DESIGN.md)
+**Docs:** [Handoff](HANDOFF.md) · [Architecture](docs/ARCHITECTURE.md) · [Design](docs/DESIGN.md) · [Enrichment](docs/ENRICHMENT.md) · [Catalogue → Audio Vault](docs/CATALOGUE.md)
 
 ## Project status — _2026-06-18_
 
@@ -99,44 +99,77 @@ python run.py --once
 
 # 4) The daemon (event-driven + periodic rescan):
 python run.py --watch
+
+# 5) Kept-alive daemon — restarts the watcher whenever it stops or hangs (what autostart runs):
+python run.py --supervise          #   stop cleanly with:  python run.py --stop
+
+# 6) Audiophile enrichment sidecars (opt-in, ffmpeg; see docs/ENRICHMENT.md):
+python run.py --enrich --analyze   #   managed + AV-resilient:  --start-enrich / --stop-enrich
+
+# 7) Publish the Audio Vault catalogue collection.json (see docs/CATALOGUE.md):
+python run.py --catalogue --push
+
+# 8) Re-tag + re-organize the existing library to the current standard:
+python run.py --retag
+
+# Progress snapshot any time:
+python run.py --status
 ```
 Open `review_report.html` to see what was left behind and why. Fix a folder's contents
 (e.g. add the missing track) and it's **re-evaluated automatically** next scan — the SQLite
 state keys off a content signature, not just the path.
 
-## Autostart on Windows login (important)
-Picard is a GUI app with **no true headless mode**, so PicardWatch must run in your
-**interactive desktop session**, not as a Session-0 service. Use a **logon-triggered**
-Task Scheduler task (not "run whether logged on or not"):
-- Trigger: *At log on* (your user)
-- Action: `…\.venv\Scripts\pythonw.exe`  argument `run.py --watch`
-- Start in: the project folder
+## Keep it running (autostart + self-heal)
+Native tagging needs no GUI, but the watcher still runs in your **logon session** (the
+library is on a per-user mapped drive). It stays alive three ways:
+- **Supervisor** — `run.py --supervise` (re)starts the watcher whenever it stops or hangs.
+- **Startup shortcut** — a `pythonw run.py --supervise` shortcut in the Startup folder
+  relaunches it at logon (no admin needed).
+- **Keepalive task** — `install-keepalive.ps1` (run once **as admin**) registers a scheduled
+  task that relaunches the supervisor *and* the enrichment worker within ~10 min if they're
+  ever killed (e.g. by antivirus) and after resume-from-sleep.
 
-## Known caveats (by design, see the chat design doc)
-- **GUI session required** — see autostart note above.
-- **Async timing** — Picard's lookups are asynchronous; `picard.pause_after_lookup`
-  in `config.yaml` is the wait before `SAVE_MATCHED`. Increase it for big albums / slow
-  networks. Post-move verification is the real safety net.
-- **Double fingerprinting** — the judge fingerprints to decide; Picard fingerprints again
-  to tag. Keep `picard.use_known_mbid: true` so Picard loads the resolved release MBID and
-  skips its own `SCAN`.
+Stop cleanly with `python run.py --stop` (finishes the current album, then exits).
+
+## Notes / environment
+- **Native tagging by default** (Mutagen) — Picard is optional and unused; the `picard.*`
+  config only matters if you switch the engine back.
+- **HTTPS interception** — if antivirus/proxy scans HTTPS, Python 3.13+ strict TLS rejects the
+  injected CA. Set `musicbrainz.ssl_mode: relaxed` (verifies chain + host, tolerates the
+  non-RFC-strict cert); `network_timeout` + retries stop a dropped connection from freezing
+  the watcher.
+- **Keep awake** — the supervisor holds `ES_SYSTEM_REQUIRED` (display may still sleep).
+  Disabling OS **sleep + hibernate** is recommended — they can kill the daemon.
+- **Disk guard** — imports pause (or stop) if the **library** drive drops below
+  `space.min_free_gb`.
 
 ## Layout
 ```
 picardwatch/
-  config.yaml            run config
-  picard-batch.ini       dedicated Picard config (move/rename/Plex naming)
+  config.yaml            run config (copied from config.example.yaml; git-ignored)
   requirements.txt
-  run.py                 CLI: --once / --watch / --folder, --dry-run
+  run.py                 CLI: --once / --watch / --supervise / --folder / --status / --retag /
+                         --enrich / --start-enrich / --stop-enrich / --catalogue [--push] / --stop
+  keepalive.pyw          self-heal launcher (scheduled task revives the supervisor + enrich worker)
+  install.ps1 / .bat     one-shot setup;  install-keepalive.ps1 = admin step to register the task
   picardwatch/
     config.py            yaml -> namespace
     models.py            Track, FileAnalysis, AlbumDecision
     state.py             SQLite decisions + cache + folder signature
+    discovery.py         find album folders (flat OR nested Genre/Artist/Album; multi-disc)
+    watcher.py           watchdog + folder-stability gate (multiple input roots)
+    judge.py             THE "perfect album" decision (parallel fingerprinting)
     musicbrainz.py       rate-limited MB client (+cache) and release helpers
-    judge.py             THE "perfect album" decision
-    picard_runner.py     builds + runs the Picard -e command sequence
-    verifier.py          confirms the move happened
-    plex.py              triggers a Plex section scan
-    watcher.py           watchdog + folder-stability gate
-    report.py            review_report.html
+    importer.py          native import: fetch art, move, tag, cover.jpg, then cleanup
+    tagger.py            write Plex-friendly tags + embed art (FLAC/MP3/MP4/Ogg)
+    organizer.py         Artist/Album (Year) (Type)/[Disc N/] naming
+    cleanup.py           remove emptied source folders + stale links after a move
+    diskspace.py         pause/stop imports if the library drive runs low
+    supervisor.py        keep run.py --watch alive (restart on exit/hang)
+    control.py           cooperative stop flags;  power.py  keep the PC awake
+    winutil.py           keep child processes (fpcalc/ffmpeg) windowless
+    enrich.py            audiophile enrichment -> audiophile.json   (docs/ENRICHMENT.md)
+    catalogue.py         Audio Vault collection.json                (docs/CATALOGUE.md)
+    retag.py             re-tag/re-organize the existing library
+    plex.py              Plex section scan;  report.py  review report;  status.py  progress
 ```

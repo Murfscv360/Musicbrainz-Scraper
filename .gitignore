@@ -13,6 +13,8 @@ logs/
 review_report.html
 *.lock
 *.stop
+*.done
+.catalogue-cache.json
 
 # Python bytecode
 __pycache__/

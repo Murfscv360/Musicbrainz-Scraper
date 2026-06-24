@@ -136,10 +136,13 @@ def main() -> None:
     mode.add_argument("--enrich", action="store_true", help="write audiophile-enrichment sidecars (audiophile.json) for the library; add --analyze for ffmpeg loudness/DR/waveform")
     mode.add_argument("--start-enrich", action="store_true", help="clear stop/done flags and launch the enrichment worker (Tier-2) in the background; it auto-restarts via the keepalive task")
     mode.add_argument("--stop-enrich", action="store_true", help="ask the enrichment worker to finish its current album, stop, and not auto-restart")
+    mode.add_argument("--catalogue", action="store_true", help="write a metadata catalogue (catalogue.json + README.md) of the library to --out")
     mode.add_argument("--supervise", action="store_true", help="keep the watcher alive: (re)start run.py --watch whenever it stops or hangs")
     mode.add_argument("--stop", action="store_true", help="ask a running supervisor/watcher to finish the current album and shut down cleanly")
     ap.add_argument("--dry-run", action="store_true", help="judge + report only; never move files")
     ap.add_argument("--limit", type=int, default=0, help="with --once/--enrich, process at most N folders (0 = all)")
+    ap.add_argument("--out", default="", help="repo dir for --catalogue (default: catalogue.repo_dir in config)")
+    ap.add_argument("--push", action="store_true", help="with --catalogue: git commit + push collection.json to its repo")
     ap.add_argument("--analyze", action="store_true", help="with --enrich: also run ffmpeg loudness/LRA/true-peak/waveform (slow; needs ffmpeg on PATH)")
     ap.add_argument("--force", action="store_true", help="re-judge even if this exact folder was decided before")
     ap.add_argument("-v", "--verbose", action="store_true")
@@ -152,7 +155,10 @@ def main() -> None:
         control.request_stop(cfg)
         print("Stop requested. The supervisor + watcher will finish the current album and shut down.")
         return
-    log_file = "supervisor.log" if args.supervise else ("enrich.log" if args.enrich else "picardwatch.log")
+    log_file = ("supervisor.log" if args.supervise else
+                "enrich.log" if args.enrich else
+                "catalogue.log" if args.catalogue else
+                "picardwatch.log")
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
         format="%(asctime)s %(levelname)-7s %(name)s: %(message)s",
@@ -193,6 +199,23 @@ def main() -> None:
         from picardwatch import enrich
         _elock = _single_instance_lock(cfg, "picardwatch-enrich.lock", "--enrich")  # noqa: F841
         enrich.enrich_library(cfg, analyze=args.analyze, force=args.force, limit=args.limit)
+        return
+
+    if args.catalogue:
+        # Build the Audio Vault collection.json (vault schema) from the library + audiophile
+        # sidecars, write it to the repo root, and (with --push) git commit + push it.
+        from picardwatch import catalogue
+        cat = getattr(cfg, "catalogue", None)
+        repo = args.out or str(getattr(cat, "repo_dir", "") or (Path(cfg.paths.log_dir).resolve().parent / "catalogue"))
+        fname = str(getattr(cat, "file", "collection.json"))
+        vname = str(getattr(cat, "name", "Audio Vault"))
+        coll = catalogue.build_collection(cfg, name=vname, limit=args.limit)
+        catalogue.write_collection(repo, coll, fname)
+        st = coll["meta"]["stats"]
+        print(f"collection.json: {st['artists']} artists, {st['albums']} albums, "
+              f"{st['tracks']} tracks, {st['analyzed']} enriched -> {repo}\\{fname}")
+        if args.push:
+            print("Published." if catalogue.publish(repo, fname) else "Push FAILED (see logs/catalogue.log).")
         return
 
     if args.supervise:
