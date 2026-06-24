@@ -113,18 +113,29 @@ def watch(cfg, handler: Callable[[Path], None]) -> None:
 def _scan(root: Path, cfg, handler: Callable[[Path], None]) -> None:
     log.info("Scanning %s ...", root)
     n = 0
-    for album in discovery.find_albums(root, cfg.judge.audio_extensions):
-        if control.stop_requested(cfg):
-            log.info("Stop requested - halting scan.")
-            return
-        n += 1
-        if n % 200 == 0:
-            log.info("  ...%d album folders scanned in %s", n, root)  # heartbeat
-        if not is_stable(album, cfg):
-            log.debug("Not stable yet: %s", album.name)
-            continue
-        try:
-            handler(album)
-        except Exception:
-            log.exception("Error processing %s", album)
+    try:
+        for album in discovery.find_albums(root, cfg.judge.audio_extensions):
+            if control.stop_requested(cfg):
+                log.info("Stop requested - halting scan.")
+                return
+            n += 1
+            if n % 200 == 0:
+                log.info("  ...%d album folders scanned in %s", n, root)  # heartbeat
+            try:
+                stable = is_stable(album, cfg)
+            except OSError as exc:                    # a single flaky-drive stat must not abort
+                log.warning("Filesystem error on %s: %s (skipping)", album, exc)
+                continue
+            if not stable:
+                log.debug("Not stable yet: %s", album.name)
+                continue
+            try:
+                handler(album)
+            except Exception:
+                log.exception("Error processing %s", album)
+    except OSError as exc:
+        # an SMB/network error mid-walk must NOT crash the watcher (it was exiting code 1 and
+        # crash-looping on the slow Y: drive) — log and retry on the next cycle.
+        log.warning("Scan of %s interrupted by a filesystem error: %s (retrying next cycle)", root, exc)
+        return
     log.info("  Scan of %s complete (%d album folders).", root, n)
