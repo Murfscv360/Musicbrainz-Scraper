@@ -15,6 +15,7 @@ review_report.html
 *.stop
 *.done
 .catalogue-cache.json
+.catalogue-folders.json
 
 # Python bytecode
 __pycache__/

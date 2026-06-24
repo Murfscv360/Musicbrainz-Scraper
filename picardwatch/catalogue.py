@@ -21,7 +21,8 @@ import logging
 import math
 import re
 import subprocess
-from concurrent.futures import ThreadPoolExecutor
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -30,7 +31,7 @@ from mutagen.flac import FLAC
 from mutagen.oggopus import OggOpus
 from mutagen.oggvorbis import OggVorbis
 
-from . import discovery, enrich
+from . import enrich
 
 log = logging.getLogger("picardwatch.catalogue")
 
@@ -150,6 +151,89 @@ def _save_cache(cfg, c: dict) -> None:
         pass
 
 
+# ── stall resilience: time out a flaky-network op instead of hanging the whole build ──
+_OP_TIMEOUT = 45   # seconds for one directory listing / file read before it's "stalled"
+                   # (generous so a slow-but-working op isn't dropped; enrich must be paused —
+                   #  its ffmpeg saturates the SMB drive enough that even a listing times out)
+
+
+def _with_timeout(fn, timeout=_OP_TIMEOUT):
+    """Run fn() in a daemon thread; return its result, or None if it stalls past `timeout`
+    (the stalled thread is abandoned — fine for a slow/flaky SMB drive)."""
+    box: dict = {}
+
+    def work():
+        try:
+            box["r"] = fn()
+        except Exception:
+            box["r"] = None
+
+    t = threading.Thread(target=work, daemon=True)
+    t.start()
+    t.join(timeout)
+    return box.get("r")
+
+
+def _read_json(p: Path) -> dict:
+    try:
+        return json.loads(Path(p).read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def _write_json(p: Path, data: dict) -> None:
+    try:
+        Path(p).write_text(json.dumps(data), encoding="utf-8")
+    except Exception:
+        pass
+
+
+def _folders_cache(cfg) -> Path:
+    return Path(cfg.paths.state_db).resolve().parent / ".catalogue-folders.json"
+
+
+def discover_albums(cfg, exts, refresh: bool = False, limit: int = 0) -> list:
+    """Resilient Artist/Album walk: times out stalled folders (skips them) and caches the
+    album-folder list, so re-runs skip the slow walk. Pass refresh=True to re-walk."""
+    library = Path(cfg.paths.library)
+    cpath = _folders_cache(cfg)
+    cached = _read_json(cpath)
+    if not refresh and cached.get("folders") and not cached.get("partial"):
+        return [Path(f) for f in cached["folders"]]
+    log.info("Walking %s for album folders (per-folder timeout %ds) ...", library, _OP_TIMEOUT)
+    folders: list = []
+    arts = _with_timeout(lambda: sorted(p for p in library.iterdir() if p.is_dir())) or []
+    for art in arts:
+        albums = _with_timeout(lambda a=art: [p for p in a.iterdir() if p.is_dir()])
+        if albums is None:
+            log.warning("  stalled artist folder skipped: %s", art.name)
+            continue
+        for alb in albums:
+            entries = _with_timeout(lambda d=alb: list(d.iterdir()))
+            if entries is None:
+                log.warning("  stalled album folder skipped: %s", alb.name)
+                continue
+            has_audio = any(e.is_file() and e.suffix.lower() in exts for e in entries)
+            if not has_audio:                                  # multi-disc: look one level down
+                for sub in (e for e in entries if e.is_dir()):
+                    if _with_timeout(lambda d=sub: any(p.is_file() and p.suffix.lower() in exts
+                                                       for p in d.iterdir())):
+                        has_audio = True
+                        break
+            if has_audio:
+                folders.append(alb)
+                if limit and len(folders) >= limit:
+                    _write_json(cpath, {"folders": [str(f) for f in folders], "partial": True})
+                    log.info("Walk stopped at limit %d.", limit)
+                    return folders
+                if len(folders) % 50 == 0:
+                    _write_json(cpath, {"folders": [str(f) for f in folders], "partial": True})
+                    log.info("  ...%d album folders", len(folders))
+    _write_json(cpath, {"folders": [str(f) for f in folders], "partial": False})
+    log.info("Walk complete: %d album folders cached.", len(folders))
+    return folders
+
+
 def _sidecar_for(folder: Path, sidecar_name: str) -> dict | None:
     for cand in (folder / sidecar_name, folder.parent / sidecar_name):
         if cand.exists():
@@ -170,31 +254,43 @@ def build_collection(cfg, name: str = "Audio Vault", limit: int = 0, workers: in
         log.error("Library folder does not exist: %s", library)
         return _finalize(cfg, name, {}, {}, annotations)
 
-    # 1) gather album folders + files + sidecars; queue ONE representative file each
+    # 1) discover album folders (resilient + cached walk), then read files/sidecars per album
+    folders = discover_albums(cfg, exts, limit=limit)
+    if limit:
+        folders = folders[:limit]
+    log.info("Cataloguing %d albums (1 read/album, ×%d) ...", len(folders), workers)
     infos: list = []     # (folder, files, side_album, side_tracks)
     reps: list = []      # representative file per album
-    for folder in discovery.find_albums(library, exts):
-        files = sorted(p for p in folder.rglob("*") if p.is_file() and p.suffix.lower() in exts)
+    for folder in folders:
+        files = _with_timeout(lambda d=folder: sorted(p for p in d.rglob("*")
+                                                      if p.is_file() and p.suffix.lower() in exts))
         if not files:
             continue
-        side = _sidecar_for(folder, sidecar_name) or {}
+        side = _with_timeout(lambda d=folder: _sidecar_for(d, sidecar_name)) or {}
         infos.append((folder, files, side.get("album") or {},
                       {t.get("file"): t for t in (side.get("tracks") or []) if t.get("file")}))
         reps.append(files[0])
-        if limit and len(infos) >= limit:
-            break
-    log.info("Cataloguing %d albums (1 read/album, ×%d) ...", len(infos), workers)
 
-    # 2) read the representative file of each album in parallel (cached)
+    # 2) read each album's representative file in parallel — each read time-limited, and the
+    #    per-file cache is saved incrementally so a kill/reboot resumes instead of restarting
     cache = _load_cache(cfg)
-    next_cache: dict = {}
-    with ThreadPoolExecutor(max_workers=max(1, workers)) as ex:
-        parsed = list(ex.map(lambda r: (str(r), _parse_file(r, cache)), reps))
+    next_cache: dict = dict(cache)
     repdata: dict = {}
-    for fpath, entry in parsed:
-        if entry is not None:
-            next_cache[fpath] = entry
-            repdata[fpath] = entry["d"]
+
+    def _rep(r):
+        return str(r), _with_timeout(lambda: _parse_file(r, cache), 30)
+
+    with ThreadPoolExecutor(max_workers=max(1, workers)) as ex:
+        done = 0
+        for fut in as_completed({ex.submit(_rep, r) for r in reps}):
+            fpath, entry = fut.result()
+            if entry is not None:
+                next_cache[fpath] = entry
+                repdata[fpath] = entry["d"]
+            done += 1
+            if done % 100 == 0:
+                _save_cache(cfg, next_cache)
+                log.info("  ...read %d/%d rep files", done, len(reps))
     _save_cache(cfg, next_cache)
 
     # 3) build artists + albums
