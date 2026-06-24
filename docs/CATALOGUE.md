@@ -55,11 +55,22 @@ filenames + the sidecar. This cuts reads ~12×.
 - A **`.catalogue-cache.json`** (path + mtime + size) makes re-runs instant — only changed
   files are re-read.
 
-## Performance note
+## Performance on a slow drive
 
-The build's cost is almost entirely **network I/O on the library drive**, and it competes
-with the live watcher + the enrichment pass for that drive. For a fast, reliable run, do it
-in a **quiet window** — pause the enrichment (`run.py --stop-enrich`) and ideally let the
-watcher idle — then `run.py --catalogue --push`. After the first full build the cache makes
-refreshes cheap, so a periodic re-run keeps `collection.json` current as new albums import
-and more sidecars are enriched.
+The whole build is **network I/O on the library drive** — on this setup a ~1 MB/s SMB share.
+Two things keep it from stalling (early versions timed out or stalled for tens of minutes):
+
+- **`os.scandir` + parallel everywhere** — the artist walk, the per-album file/sidecar
+  listing, and the one-file-per-album read all run on a thread pool so the drive's per-op
+  latency overlaps instead of summing, and use `scandir` (one enumeration per folder) instead
+  of `iterdir() + is_dir()` (a `stat()` per entry — hundreds of round-trips just to list the
+  top-level artists).
+- **Caches** — `.catalogue-folders.json` (the album-folder list) and `.catalogue-cache.json`
+  (path + mtime + size per read) make re-runs near-instant; only changed files are re-read.
+
+It now **completes even while the watcher is importing** to the same drive — the import writes
+just slow it (a full ~1,800-album build took ~50 min under live imports vs a few minutes on an
+idle drive). For the fastest run, do it in a quiet window (`run.py --stop-enrich`, let the
+watcher idle). `PICARDWATCH_CAT_TIMEOUT=<seconds>` raises the per-op stall timeout (default 45)
+for an exceptionally slow drive. Run `run.py` from the **project directory** so the caches and
+`collection.json` resolve to the right place.
