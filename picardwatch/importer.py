@@ -24,24 +24,42 @@ _HEARTBEAT_SEC = 20   # during one large cross-drive copy, log progress at least
 
 def _move_file(src: Path, target: Path) -> None:
     """Move src -> target. Fast atomic rename when same-volume; otherwise stream-copy across the
-    (slow) network drive in chunks, emitting a heartbeat so a slow-but-progressing copy isn't
-    killed by the supervisor's hang detector, then remove the source."""
+    (slow) network drive to a temp file (heartbeat so a slow copy isn't mistaken for a hang),
+    fsync + verify the byte count, then atomically os.replace it into place and remove the source.
+    A copy killed mid-write (e.g. the supervisor's hang-killer on slow Y:) leaves only a .pwpart
+    temp -- never a truncated target or a destroyed-but-not-replaced library file."""
     try:
         os.replace(src, target)            # same-volume: atomic move (also overwrites target)
         return
     except OSError:
-        pass                               # cross-device (e.g. D: -> Y:): chunked copy + heartbeat
+        pass                               # cross-device (e.g. D: -> Y:): chunked copy + verify
+    try:
+        size = src.stat().st_size
+    except OSError:
+        size = -1
+    tmp = target.with_name(target.name + ".pwpart")
     last = time.monotonic()
-    with open(src, "rb") as fsrc, open(target, "wb") as fdst:
+    written = 0
+    with open(src, "rb") as fsrc, open(tmp, "wb") as fdst:
         while True:
             chunk = fsrc.read(4 * 1024 * 1024)
             if not chunk:
                 break
             fdst.write(chunk)
+            written += len(chunk)
             if time.monotonic() - last >= _HEARTBEAT_SEC:
-                log.info("    ...copying %s (%d MB)", target.name, fdst.tell() // (1024 * 1024))
+                log.info("    ...copying %s (%d MB)", target.name, written // (1024 * 1024))
                 last = time.monotonic()
-    shutil.copystat(str(src), str(target))
+        fdst.flush()
+        os.fsync(fdst.fileno())            # bytes must be on the NAS before we trust the count
+    if size >= 0 and written != size:
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+        raise OSError(f"short copy of {src.name}: {written} of {size} bytes")
+    shutil.copystat(str(src), str(tmp))
+    os.replace(tmp, target)                # atomic: target only ever appears complete
     try:
         src.unlink()
     except OSError:
@@ -77,9 +95,7 @@ def import_album(decision, cfg, dry_run: bool = False) -> bool:
             continue
         target = dest / organizer.track_relpath(item, album, src.suffix)
         target.parent.mkdir(parents=True, exist_ok=True)  # 'Disc N' subfolder for multi-disc albums
-        if target.exists():
-            target.unlink()
-        _move_file(src, target)
+        _move_file(src, target)            # atomic temp->replace; overwrites safely without pre-unlinking
         moved += 1
         try:
             tagger.tag_file(str(target), item, album, cover if embed else None)

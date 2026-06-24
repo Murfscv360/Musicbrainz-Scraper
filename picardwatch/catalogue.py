@@ -160,9 +160,17 @@ _OP_TIMEOUT = int(os.environ.get("PICARDWATCH_CAT_TIMEOUT", "45"))   # seconds f
                    # or pointed elsewhere — they saturate SMB enough that even a listing times out.
 
 
+_MAX_INFLIGHT = 32                          # cap concurrent timeout-threads so a fully-unresponsive
+_INFLIGHT = threading.BoundedSemaphore(_MAX_INFLIGHT)  # SMB drive can't spawn hundreds of them
+
+
 def _with_timeout(fn, timeout=_OP_TIMEOUT):
-    """Run fn() in a daemon thread; return its result, or None if it stalls past `timeout`
-    (the stalled thread is abandoned — fine for a slow/flaky SMB drive)."""
+    """Run fn() in a daemon thread; return its result, or None if it stalls past `timeout` (the
+    stalled thread is abandoned — fine for a slow/flaky SMB drive). Abandoned threads count against
+    a global in-flight cap, so if the drive goes fully unresponsive we skip further ops (return None)
+    instead of leaking unbounded threads + open SMB handles."""
+    if not _INFLIGHT.acquire(blocking=False):
+        return None                         # too many ops already stalled in flight — treat as stalled
     box: dict = {}
 
     def work():
@@ -170,9 +178,15 @@ def _with_timeout(fn, timeout=_OP_TIMEOUT):
             box["r"] = fn()
         except Exception:
             box["r"] = None
+        finally:
+            _INFLIGHT.release()
 
     t = threading.Thread(target=work, daemon=True)
-    t.start()
+    try:
+        t.start()
+    except RuntimeError:                     # hit the OS thread limit — release and skip
+        _INFLIGHT.release()
+        return None
     t.join(timeout)
     return box.get("r")
 

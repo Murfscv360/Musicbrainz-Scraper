@@ -132,6 +132,7 @@ def main() -> None:
     mode.add_argument("--watch", action="store_true", help="run the watcher daemon")
     mode.add_argument("--folder", help="process a single album folder and exit")
     mode.add_argument("--status", action="store_true", help="print a progress snapshot (moved/remaining/ETA) and exit")
+    mode.add_argument("--prune-cache", action="store_true", help="cap the MB/AcoustID response cache (grows unbounded) and exit; add --vacuum to reclaim disk")
     mode.add_argument("--retag", action="store_true", help="re-tag + re-organize the existing library to the current standard, then exit")
     mode.add_argument("--enrich", action="store_true", help="write audiophile-enrichment sidecars (audiophile.json) for the library; add --analyze for ffmpeg loudness/DR/waveform")
     mode.add_argument("--start-enrich", action="store_true", help="clear stop/done flags and launch the enrichment worker (Tier-2) in the background; it auto-restarts via the keepalive task")
@@ -143,6 +144,7 @@ def main() -> None:
     ap.add_argument("--limit", type=int, default=0, help="with --once/--enrich, process at most N folders (0 = all)")
     ap.add_argument("--out", default="", help="repo dir for --catalogue (default: catalogue.repo_dir in config)")
     ap.add_argument("--push", action="store_true", help="with --catalogue: git commit + push collection.json to its repo")
+    ap.add_argument("--vacuum", action="store_true", help="with --prune-cache: VACUUM to reclaim freed space (needs the watcher stopped)")
     ap.add_argument("--analyze", action="store_true", help="with --enrich: also run ffmpeg loudness/LRA/true-peak/waveform (slow; needs ffmpeg on PATH)")
     ap.add_argument("--force", action="store_true", help="re-judge even if this exact folder was decided before")
     ap.add_argument("-v", "--verbose", action="store_true")
@@ -231,6 +233,14 @@ def main() -> None:
     state = State(cfg.paths.state_db)
     if args.status:
         print(status.render(cfg, state))
+        return
+    if args.prune_cache:
+        before = state.cache_count()
+        n = state.prune_cache()
+        print(f"Pruned {n} of {before} cache row(s); {state.cache_count()} kept.")
+        if args.vacuum:
+            print("VACUUM (reclaiming disk; needs exclusive access)...")
+            print("Done." if state.vacuum() else "VACUUM skipped — DB locked (stop the watcher first).")
         return
     if args.retag:
         from picardwatch import retag

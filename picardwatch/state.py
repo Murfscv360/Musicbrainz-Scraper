@@ -136,6 +136,33 @@ class State:
         )
         self.db.commit()
 
+    def cache_count(self) -> int:
+        return int(self.db.execute("SELECT COUNT(*) FROM cache").fetchone()[0])
+
+    def prune_cache(self, max_rows: int = 50000, keep_days: int = 0) -> int:
+        """Cap the MB/AcoustID response cache so it can't grow unbounded (it had reached ~1 GB).
+        Keeps the most-recently-written `max_rows` rows (and, if keep_days>0, drops anything older).
+        Pruned entries are only lookup accelerators — re-fetched on demand. Returns rows deleted."""
+        deleted = 0
+        if keep_days > 0:
+            cutoff = time.time() - keep_days * 86400
+            deleted += self.db.execute("DELETE FROM cache WHERE ts < ?", (cutoff,)).rowcount
+        deleted += self.db.execute(
+            "DELETE FROM cache WHERE k IN (SELECT k FROM cache ORDER BY ts DESC LIMIT -1 OFFSET ?)",
+            (max_rows,),
+        ).rowcount
+        self.db.commit()
+        return deleted
+
+    def vacuum(self) -> bool:
+        """Reclaim freed space on disk after a prune. Needs EXCLUSIVE access — returns False if the
+        DB is locked (i.e. the watcher is running; stop it first)."""
+        try:
+            self.db.execute("VACUUM")
+            return True
+        except sqlite3.OperationalError:
+            return False
+
 
 def folder_signature(folder: str | Path, audio_exts: list[str]) -> Optional[str]:
     """Return a stable hash of the folder's file (name, size) pairs, or None if the

@@ -118,7 +118,7 @@ class Judge:
                 misses.append((i, f, tags, tagdur, ck))
 
         if misses:
-            workers = max(1, min(int(getattr(self.cfg.judge, "fingerprint_workers", 4)), len(misses)))
+            workers = max(1, min(int(getattr(self.cfg.judge, "fingerprint_workers", 1)), len(misses)))
             with ThreadPoolExecutor(max_workers=workers) as ex:
                 futs = {ex.submit(self._compute, f, tagdur): (i, f, tags, ck)
                         for (i, f, tags, tagdur, ck) in misses}

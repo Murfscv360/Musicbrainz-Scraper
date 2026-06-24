@@ -500,7 +500,7 @@ def enrich_library(cfg, analyze: bool = False, force: bool = False, limit: int =
     exts = {e.lower() for e in cfg.judge.audio_extensions}
     enr = getattr(cfg, "enrich", None)
     name = str(getattr(enr, "sidecar", "audiophile.json"))
-    workers = int(getattr(enr, "analyze_workers", 2))
+    workers = int(getattr(enr, "analyze_workers", 1))
     lib = Path(cfg.paths.library)
     if not lib.exists():
         log.error("Library folder does not exist: %s", lib)
