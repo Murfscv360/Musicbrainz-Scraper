@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import logging
 import math
+import os
 import re
 import subprocess
 import threading
@@ -152,9 +153,11 @@ def _save_cache(cfg, c: dict) -> None:
 
 
 # ── stall resilience: time out a flaky-network op instead of hanging the whole build ──
-_OP_TIMEOUT = 45   # seconds for one directory listing / file read before it's "stalled"
-                   # (generous so a slow-but-working op isn't dropped; enrich must be paused —
-                   #  its ffmpeg saturates the SMB drive enough that even a listing times out)
+_OP_TIMEOUT = int(os.environ.get("PICARDWATCH_CAT_TIMEOUT", "45"))   # seconds for one directory
+                   # listing / file read before it's "stalled" (generous so a slow-but-working op
+                   # isn't dropped). Raise via PICARDWATCH_CAT_TIMEOUT on a slow library drive;
+                   # heavy Y: readers (enrich, or the watcher scanning a Y: input) should be paused
+                   # or pointed elsewhere — they saturate SMB enough that even a listing times out.
 
 
 def _with_timeout(fn, timeout=_OP_TIMEOUT):
@@ -192,43 +195,98 @@ def _folders_cache(cfg) -> Path:
     return Path(cfg.paths.state_db).resolve().parent / ".catalogue-folders.json"
 
 
-def discover_albums(cfg, exts, refresh: bool = False, limit: int = 0) -> list:
+def _scan_subdirs(path: Path) -> list:
+    """Subdirectories of `path` via os.scandir, which caches each entry's is_dir() from the
+    directory enumeration -- ONE SMB round-trip instead of a stat() per entry. The per-entry
+    stat storm of iterdir()+is_dir() (~1 stat per artist x hundreds) is exactly what made the
+    top-level listing exceed the stall timeout on the slow Y: drive."""
+    out = []
+    with os.scandir(path) as it:
+        for e in it:
+            try:
+                if e.is_dir():
+                    out.append(Path(e.path))
+            except OSError:
+                pass
+    return out
+
+
+def _dir_has_audio(path: Path, exts) -> bool:
+    """True if `path` directly contains an audio file (cached is_file() via os.scandir)."""
+    with os.scandir(path) as it:
+        for e in it:
+            try:
+                if e.is_file() and os.path.splitext(e.name)[1].lower() in exts:
+                    return True
+            except OSError:
+                pass
+    return False
+
+
+def _audio_files(folder: Path, exts) -> list:
+    """Audio files in `folder` plus one level down (multi-disc), via os.scandir (cached
+    is_file/is_dir -> no stat() per entry, unlike rglob). Sorted for a stable representative."""
+    out = []
+    try:
+        with os.scandir(folder) as it:
+            for e in it:
+                try:
+                    if e.is_file():
+                        if os.path.splitext(e.name)[1].lower() in exts:
+                            out.append(Path(e.path))
+                    elif e.is_dir():
+                        with os.scandir(e.path) as it2:
+                            for e2 in it2:
+                                if e2.is_file() and os.path.splitext(e2.name)[1].lower() in exts:
+                                    out.append(Path(e2.path))
+                except OSError:
+                    pass
+    except OSError:
+        pass
+    return sorted(out)
+
+
+def _albums_in_artist(art: Path, exts) -> list:
+    """Immediate sub-folders of one artist = its album folders, via a single scandir. The
+    audio-presence test is deferred to build_collection (its per-folder rglob + 'if not files:
+    continue' drops any non-album folder and finds multi-disc audio one level down), so the same
+    folder isn't scandir'd twice -- roughly halving the SMB ops the walk costs on the slow drive."""
+    albums = _with_timeout(lambda: _scan_subdirs(art))
+    if albums is None:
+        log.warning("  stalled artist folder skipped: %s", art.name)
+        return []
+    return albums
+
+
+def discover_albums(cfg, exts, refresh: bool = False, limit: int = 0, workers: int = 12) -> list:
     """Resilient Artist/Album walk: times out stalled folders (skips them) and caches the
-    album-folder list, so re-runs skip the slow walk. Pass refresh=True to re-walk."""
+    album-folder list, so re-runs skip the slow walk. Pass refresh=True to re-walk.
+
+    Artists are scanned in PARALLEL (one thread each) so the slow Y: SMB drive's per-op latency
+    overlaps instead of summing -- a sequential walk was ~10 folders/min (hours for the whole
+    library); parallel finishes in minutes even while the watcher imports to the same drive.
+    os.scandir avoids a stat() per entry on top of that."""
     library = Path(cfg.paths.library)
     cpath = _folders_cache(cfg)
     cached = _read_json(cpath)
     if not refresh and cached.get("folders") and not cached.get("partial"):
         return [Path(f) for f in cached["folders"]]
-    log.info("Walking %s for album folders (per-folder timeout %ds) ...", library, _OP_TIMEOUT)
+    log.info("Walking %s for album folders (per-folder timeout %ds, x%d workers) ...",
+             library, _OP_TIMEOUT, workers)
+    arts = _with_timeout(lambda: sorted(_scan_subdirs(library))) or []
     folders: list = []
-    arts = _with_timeout(lambda: sorted(p for p in library.iterdir() if p.is_dir())) or []
-    for art in arts:
-        albums = _with_timeout(lambda a=art: [p for p in a.iterdir() if p.is_dir()])
-        if albums is None:
-            log.warning("  stalled artist folder skipped: %s", art.name)
-            continue
-        for alb in albums:
-            entries = _with_timeout(lambda d=alb: list(d.iterdir()))
-            if entries is None:
-                log.warning("  stalled album folder skipped: %s", alb.name)
-                continue
-            has_audio = any(e.is_file() and e.suffix.lower() in exts for e in entries)
-            if not has_audio:                                  # multi-disc: look one level down
-                for sub in (e for e in entries if e.is_dir()):
-                    if _with_timeout(lambda d=sub: any(p.is_file() and p.suffix.lower() in exts
-                                                       for p in d.iterdir())):
-                        has_audio = True
-                        break
-            if has_audio:
-                folders.append(alb)
-                if limit and len(folders) >= limit:
-                    _write_json(cpath, {"folders": [str(f) for f in folders], "partial": True})
-                    log.info("Walk stopped at limit %d.", limit)
-                    return folders
-                if len(folders) % 50 == 0:
-                    _write_json(cpath, {"folders": [str(f) for f in folders], "partial": True})
-                    log.info("  ...%d album folders", len(folders))
+    with ThreadPoolExecutor(max_workers=max(1, workers)) as ex:
+        done = 0
+        for fut in as_completed({ex.submit(_albums_in_artist, a, exts) for a in arts}):
+            folders.extend(fut.result())
+            done += 1
+            if done % 50 == 0 or done == len(arts):
+                _write_json(cpath, {"folders": [str(f) for f in folders], "partial": True})
+                log.info("  ...%d/%d artists scanned, %d album folders", done, len(arts), len(folders))
+            if limit and len(folders) >= limit:
+                break
+    if limit:
+        folders = folders[:limit]
     _write_json(cpath, {"folders": [str(f) for f in folders], "partial": False})
     log.info("Walk complete: %d album folders cached.", len(folders))
     return folders
@@ -259,17 +317,26 @@ def build_collection(cfg, name: str = "Audio Vault", limit: int = 0, workers: in
     if limit:
         folders = folders[:limit]
     log.info("Cataloguing %d albums (1 read/album, ×%d) ...", len(folders), workers)
-    infos: list = []     # (folder, files, side_album, side_tracks)
-    reps: list = []      # representative file per album
-    for folder in folders:
-        files = _with_timeout(lambda d=folder: sorted(p for p in d.rglob("*")
-                                                      if p.is_file() and p.suffix.lower() in exts))
+    def _info_for(folder):
+        files = _with_timeout(lambda: _audio_files(folder, exts))
         if not files:
-            continue
-        side = _with_timeout(lambda d=folder: _sidecar_for(d, sidecar_name)) or {}
-        infos.append((folder, files, side.get("album") or {},
-                      {t.get("file"): t for t in (side.get("tracks") or []) if t.get("file")}))
-        reps.append(files[0])
+            return None
+        side = _with_timeout(lambda: _sidecar_for(folder, sidecar_name)) or {}
+        return (folder, files, side.get("album") or {},
+                {t.get("file"): t for t in (side.get("tracks") or []) if t.get("file")})
+
+    # Parallel + scandir: the old version was a SEQUENTIAL rglob per folder (1842 metadata ops
+    # one-at-a-time on the slow drive) -> a silent ~16-min stall. Overlap it like the walk.
+    infos: list = []     # (folder, files, side_album, side_tracks)
+    with ThreadPoolExecutor(max_workers=max(1, workers)) as ex:
+        n = 0
+        for res in ex.map(_info_for, folders):
+            n += 1
+            if res is not None:
+                infos.append(res)
+            if n % 200 == 0:
+                log.info("  ...listed %d/%d album folders", n, len(folders))
+    reps = [info[1][0] for info in infos]    # representative file per album
 
     # 2) read each album's representative file in parallel — each read time-limited, and the
     #    per-file cache is saved incrementally so a kill/reboot resumes instead of restarting
