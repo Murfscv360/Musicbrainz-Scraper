@@ -454,8 +454,9 @@ def _analyze_all(files, workers):
 
 
 def enrich_album(folder, exts, analyze: bool = False, analyze_workers: int = 2) -> dict | None:
+    from . import catalogue
     folder = Path(folder)
-    files = sorted(p for p in folder.rglob("*") if p.is_file() and p.suffix.lower() in exts)
+    files = catalogue._audio_files(folder, exts)   # scandir, not a per-entry-stat rglob
     if not files:
         return None
     analyses = _analyze_all(files, analyze_workers) if analyze else {}
@@ -495,7 +496,7 @@ def _needs_tier2(sidecar, analyze: bool) -> bool:
 def enrich_library(cfg, analyze: bool = False, force: bool = False, limit: int = 0) -> None:
     """Walk the library and write an audiophile sidecar per album. Reads audio + writes
     sidecars only — never moves/retags/deletes — so it's safe to run alongside the watcher."""
-    from . import discovery
+    from . import catalogue
     exts = {e.lower() for e in cfg.judge.audio_extensions}
     enr = getattr(cfg, "enrich", None)
     name = str(getattr(enr, "sidecar", "audiophile.json"))
@@ -518,7 +519,10 @@ def enrich_library(cfg, analyze: bool = False, force: bool = False, limit: int =
              lib, analyze, workers, "" if not limit else f", limit={limit}")
     scanned = written = 0
     completed = True
-    for folder in discovery.find_albums(lib, exts):
+    # Parallel scandir walk (the catalogue's), not the sequential find_albums: on the slow SMB
+    # drive the sequential walk left enrich stuck in discovery for tens of minutes (0 sidecars)
+    # while the watcher held the drive. refresh=True so newly-imported albums are covered too.
+    for folder in catalogue.discover_albums(cfg, exts, refresh=True):
         if enrich_stop_requested(cfg):
             log.info("Stop requested — exiting (no done marker; keepalive will NOT relaunch).")
             completed = False
@@ -527,8 +531,8 @@ def enrich_library(cfg, analyze: bool = False, force: bool = False, limit: int =
         sidecar = folder / name
         if not force and sidecar.exists():
             try:
-                newest = max(p.stat().st_mtime for p in folder.rglob("*")
-                             if p.is_file() and p.suffix.lower() in exts)
+                newest = max((p.stat().st_mtime for p in catalogue._audio_files(folder, exts)),
+                             default=0)
                 # up to date — but if --analyze was asked and the sidecar only has Tier-1
                 # data, fall through and upgrade it with the ffmpeg measurements.
                 if sidecar.stat().st_mtime >= newest and not _needs_tier2(sidecar, analyze):
