@@ -8,7 +8,9 @@ so we tag/organize directly — fully automated and unaffected by Picard's GUI/S
 from __future__ import annotations
 
 import logging
+import os
 import shutil
+import time
 from pathlib import Path
 
 from . import cleanup, coverart, organizer, tagger
@@ -16,6 +18,34 @@ from . import cleanup, coverart, organizer, tagger
 log = logging.getLogger("picardwatch.importer")
 
 _IMG_EXT = {".jpg", ".jpeg", ".png"}
+_HEARTBEAT_SEC = 20   # during one large cross-drive copy, log progress at least this often so the
+                      # supervisor (which watches log mtime) never mistakes a slow copy for a hang
+
+
+def _move_file(src: Path, target: Path) -> None:
+    """Move src -> target. Fast atomic rename when same-volume; otherwise stream-copy across the
+    (slow) network drive in chunks, emitting a heartbeat so a slow-but-progressing copy isn't
+    killed by the supervisor's hang detector, then remove the source."""
+    try:
+        os.replace(src, target)            # same-volume: atomic move (also overwrites target)
+        return
+    except OSError:
+        pass                               # cross-device (e.g. D: -> Y:): chunked copy + heartbeat
+    last = time.monotonic()
+    with open(src, "rb") as fsrc, open(target, "wb") as fdst:
+        while True:
+            chunk = fsrc.read(4 * 1024 * 1024)
+            if not chunk:
+                break
+            fdst.write(chunk)
+            if time.monotonic() - last >= _HEARTBEAT_SEC:
+                log.info("    ...copying %s (%d MB)", target.name, fdst.tell() // (1024 * 1024))
+                last = time.monotonic()
+    shutil.copystat(str(src), str(target))
+    try:
+        src.unlink()
+    except OSError:
+        pass
 
 
 def import_album(decision, cfg, dry_run: bool = False) -> bool:
@@ -49,14 +79,16 @@ def import_album(decision, cfg, dry_run: bool = False) -> bool:
         target.parent.mkdir(parents=True, exist_ok=True)  # 'Disc N' subfolder for multi-disc albums
         if target.exists():
             target.unlink()
-        shutil.move(str(src), str(target))
+        _move_file(src, target)
         moved += 1
         try:
             tagger.tag_file(str(target), item, album, cover if embed else None)
         except Exception as exc:  # never lose a moved file over a tag error
             log.warning("Tagging failed for %s: %s", target.name, exc)
-        if idx % 25 == 0:
-            log.info("  ...moved %d/%d tracks", idx, len(plan))  # heartbeat: a slow move isn't a hang
+        # Heartbeat after EVERY track (not every 25): on the slow Y: SMB drive even a small album
+        # can exceed the supervisor's hang_timeout, and a per-25 heartbeat never fires for the
+        # typical sub-25-track album -> the watcher got killed mid-import and re-imported forever.
+        log.info("  ...moved %d/%d tracks", idx, len(plan))
 
     if cover:
         (dest / coverart.cover_filename(cover)).write_bytes(cover)
