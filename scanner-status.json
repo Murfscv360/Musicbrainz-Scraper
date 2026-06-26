@@ -1,26 +1,26 @@
 {
-  "generatedAtUTC": "2026-06-26T04:53:26.902374+00:00",
+  "generatedAtUTC": "2026-06-26T05:03:27.613939+00:00",
   "scanner": {
-    "imported": 1953,
+    "imported": 1954,
     "review": 2239,
-    "duplicate": 648,
+    "duplicate": 453,
     "failed": 0,
-    "decided_total": 7060,
-    "decided_15m": 7,
-    "decided_60m": 29,
-    "decided_24h": 81,
-    "last_decision_utc": "2026-06-26T04:50:46.005130+00:00",
-    "mins_since_last_decision": 2.7
+    "decided_total": 7065,
+    "decided_15m": 9,
+    "decided_60m": 34,
+    "decided_24h": 88,
+    "last_decision_utc": "2026-06-26T05:00:10.429911+00:00",
+    "mins_since_last_decision": 3.4
   },
   "health": {
     "supervisor_running": true,
     "watcher_running": true,
     "enrich_running": true,
-    "watcher_log_age_min": 2.6,
-    "enrich_log_age_min": 1.6,
+    "watcher_log_age_min": 0.1,
+    "enrich_log_age_min": 11.7,
     "watcher_active": true,
     "enrich_active": true
   },
-  "current_watcher_log": "2026-06-25 23:50:49,964 INFO    picardwatch: Judging: Pet Shop Boys - Actually  1987 Synth-pop  [Flac 24-192 LP]-xpost",
+  "current_watcher_log": "2026-06-26 00:03:27,902 INFO    picardwatch.importer:   ...moved 4/19 tracks",
   "current_enrich_log": "2026-06-25 23:51:50,865 INFO    picardwatch.enrich: enriched Let Me In Your Life (1974) (Album)  [dr=19/measured, -18.8 LUFS]"
 }
