@@ -1,8 +1,8 @@
 {
-  "generatedAtUTC": "2026-06-26T07:13:27.121653+00:00",
+  "generatedAtUTC": "2026-06-26T07:23:27.300079+00:00",
   "scanner": {
     "imported": 1954,
-    "review": 1759,
+    "review": 1756,
     "duplicate": 0,
     "failed": 0,
     "decided_total": 7071,
@@ -10,17 +10,17 @@
     "decided_60m": 0,
     "decided_24h": 95,
     "last_decision_utc": "2026-06-26T05:16:51.489559+00:00",
-    "mins_since_last_decision": 116.6
+    "mins_since_last_decision": 126.6
   },
   "health": {
     "supervisor_running": true,
     "watcher_running": true,
     "enrich_running": true,
-    "watcher_log_age_min": 9.8,
-    "enrich_log_age_min": 7.5,
+    "watcher_log_age_min": 8.1,
+    "enrich_log_age_min": 17.5,
     "watcher_active": true,
     "enrich_active": true
   },
-  "current_watcher_log": "2026-06-26 02:03:37,531 INFO    picardwatch.watcher:   ...1200 album folders scanned in D:\\MUSIC (PLEX)\\Albums",
+  "current_watcher_log": "2026-06-26 02:15:24,409 INFO    picardwatch.watcher:   ...1400 album folders scanned in D:\\MUSIC (PLEX)\\Albums",
   "current_enrich_log": "2026-06-26 02:05:58,781 INFO    picardwatch.catalogue: Walk complete: 1926 album folders cached."
 }
