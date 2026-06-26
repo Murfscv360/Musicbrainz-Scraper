@@ -1,6 +1,6 @@
 # PicardWatch — scanner status
 
-_Auto-updated 2026-06-26 07:03 UTC (every ~15 min). Machine-readable: scanner-status.json_
+_Auto-updated 2026-06-26 07:13 UTC (every ~15 min). Machine-readable: scanner-status.json_
 
 ## Library (cumulative decisions)
 | Imported | Review | Duplicate | Failed | Total |
@@ -9,13 +9,13 @@ _Auto-updated 2026-06-26 07:03 UTC (every ~15 min). Machine-readable: scanner-st
 
 ## Pace
 - Decided — last 15 min: **0**, last hour: **0**, last 24h: **95**
-- Last decision: 2026-06-26T05:16:51.489559+00:00 (106.6 min ago)
+- Last decision: 2026-06-26T05:16:51.489559+00:00 (116.6 min ago)
 
 ## Daemons
-- supervisor: UP · watcher: UP · enrich: DOWN
-- watcher log age: 1.8 min (ACTIVE) · enrich log age: 16.2 min (ACTIVE)
+- supervisor: UP · watcher: UP · enrich: UP
+- watcher log age: 9.8 min (ACTIVE) · enrich log age: 7.5 min (ACTIVE)
 
 ## Currently
-- watcher: `2026-06-26 02:01:39,873 INFO    picardwatch.watcher:   ...1000 album folders scanned in D:\MUSIC (PLEX)\Albums`
-- enrich: `2026-06-26 01:47:15,120 INFO    picardwatch.enrich: enriched Love All the Hurt Away (1981) (Album)  [dr=14/measured, -14.4 LUFS]`
+- watcher: `2026-06-26 02:03:37,531 INFO    picardwatch.watcher:   ...1200 album folders scanned in D:\MUSIC (PLEX)\Albums`
+- enrich: `2026-06-26 02:05:58,781 INFO    picardwatch.catalogue: Walk complete: 1926 album folders cached.`
 
