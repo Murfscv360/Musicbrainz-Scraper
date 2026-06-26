@@ -14,10 +14,11 @@ and each root may be flat (Release/*.flac) or a nested library (Genre/Artist/Alb
 from __future__ import annotations
 
 import logging
+import os
 import threading
 import time
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Optional
 
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
@@ -31,14 +32,25 @@ def is_stable(folder: Path, cfg) -> bool:
     ignore = {s.lower() for s in cfg.watcher.ignore_suffixes}
     newest = 0.0
     found = False
-    for p in folder.rglob("*"):
-        if not p.is_file():
-            continue
-        if p.suffix.lower() in ignore:
-            return False  # an in-progress download marker is present
-        found = True
+    # os.scandir-based recursive walk: one SMB round-trip per folder vs rglob stat-per-entry
+    stack = [str(folder)]
+    while stack:
         try:
-            newest = max(newest, p.stat().st_mtime)
+            with os.scandir(stack.pop()) as sd:
+                for e in sd:
+                    if e.is_dir(follow_symlinks=False):
+                        stack.append(e.path)
+                        continue
+                    if not e.is_file():
+                        continue
+                    ext = os.path.splitext(e.name)[1].lower()
+                    if ext in ignore:
+                        return False
+                    found = True
+                    try:
+                        newest = max(newest, e.stat().st_mtime)
+                    except OSError:
+                        pass
         except OSError:
             pass
     if not found:
@@ -46,7 +58,7 @@ def is_stable(folder: Path, cfg) -> bool:
     return (time.time() - newest) >= cfg.watcher.stability_seconds
 
 
-def watch(cfg, handler: Callable[[Path], None]) -> None:
+def watch(cfg, handler: Callable[[Path], None], state=None) -> None:
     roots = [Path(r) for r in discovery.input_roots(cfg)]
     existing = [r for r in roots if r.exists()]
     for missing in (r for r in roots if not r.exists()):
@@ -89,7 +101,7 @@ def watch(cfg, handler: Callable[[Path], None]) -> None:
             for r in existing:
                 if control.stop_requested(cfg):
                     break
-                _scan(r, cfg, handler)
+                _scan(r, cfg, handler, state=state)
             if control.stop_requested(cfg):
                 log.info("Stop requested - shutting down watcher.")
                 break
@@ -111,7 +123,7 @@ def watch(cfg, handler: Callable[[Path], None]) -> None:
         power.allow_sleep()
 
 
-def _scan(root: Path, cfg, handler: Callable[[Path], None]) -> None:
+def _scan(root: Path, cfg, handler: Callable[[Path], None], state=None) -> None:
     log.info("Scanning %s ...", root)
     n = 0
     try:
@@ -122,6 +134,17 @@ def _scan(root: Path, cfg, handler: Callable[[Path], None]) -> None:
             n += 1
             if n % 200 == 0:
                 log.info("  ...%d album folders scanned in %s", n, root)  # heartbeat
+            # Fast path: skip is_stable() for already-decided folders whose content
+            # hasn't changed — one stat() vs rglob+stat-per-file over SMB.
+            if state is not None:
+                prior = state.get(str(album))
+                if prior and prior["status"] in ("imported", "review", "duplicate", "tidied"):
+                    try:
+                        if album.stat().st_mtime <= prior["decided_at"]:
+                            handler(album)   # process() will also fast-skip via same check
+                            continue
+                    except OSError:
+                        pass
             try:
                 stable = is_stable(album, cfg)
             except OSError as exc:                    # a single flaky-drive stat must not abort

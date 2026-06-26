@@ -302,7 +302,7 @@ def main() -> None:
             except Exception:
                 log.exception("Cleanup sweep failed for %s", root)
     elif args.watch:
-        watch(cfg, process)
+        watch(cfg, process, state=state)
 
 
 if __name__ == "__main__":
