@@ -1,26 +1,26 @@
 {
-  "generatedAtUTC": "2026-06-26T13:43:27.731587+00:00",
+  "generatedAtUTC": "2026-06-26T13:53:27.243952+00:00",
   "scanner": {
     "imported": 1954,
-    "review": 1105,
+    "review": 605,
     "duplicate": 0,
     "failed": 0,
     "decided_total": 7071,
     "decided_15m": 0,
-    "decided_60m": 1,
+    "decided_60m": 0,
     "decided_24h": 96,
     "last_decision_utc": "2026-06-26T12:50:27.423676+00:00",
-    "mins_since_last_decision": 53.0
+    "mins_since_last_decision": 63.0
   },
   "health": {
     "supervisor_running": true,
     "watcher_running": true,
     "enrich_running": true,
-    "watcher_log_age_min": 7.1,
-    "enrich_log_age_min": 51.0,
+    "watcher_log_age_min": 3.3,
+    "enrich_log_age_min": 61.0,
     "watcher_active": true,
-    "enrich_active": true
+    "enrich_active": false
   },
-  "current_watcher_log": "2026-06-26 08:36:20,808 INFO    picardwatch.watcher: Scanning Y:\\SABNZDB\\APPLE AUDIO ...",
+  "current_watcher_log": "2026-06-26 08:50:12,426 INFO    picardwatch: Judging: Carly Simon - Carly Simon (1971 - Pop) [Flac 24-192]-xpost",
   "current_enrich_log": "2026-06-26 07:52:27,338 INFO    picardwatch.enrich: enriched Soul '69 (1969) (Album)  [dr=None/-]"
 }
