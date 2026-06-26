@@ -1,26 +1,26 @@
 {
-  "generatedAtUTC": "2026-06-26T03:53:27.014658+00:00",
+  "generatedAtUTC": "2026-06-26T04:03:27.906745+00:00",
   "scanner": {
-    "imported": 1947,
+    "imported": 1948,
     "review": 2236,
-    "duplicate": 1831,
+    "duplicate": 1631,
     "failed": 0,
-    "decided_total": 7034,
+    "decided_total": 7035,
     "decided_15m": 6,
-    "decided_60m": 10,
-    "decided_24h": 52,
-    "last_decision_utc": "2026-06-26T03:51:37.772891+00:00",
-    "mins_since_last_decision": 1.8
+    "decided_60m": 12,
+    "decided_24h": 54,
+    "last_decision_utc": "2026-06-26T04:03:10.513856+00:00",
+    "mins_since_last_decision": 0.3
   },
   "health": {
     "supervisor_running": true,
     "watcher_running": true,
     "enrich_running": true,
-    "watcher_log_age_min": 1.8,
-    "enrich_log_age_min": 5.7,
+    "watcher_log_age_min": 0.4,
+    "enrich_log_age_min": 15.8,
     "watcher_active": true,
     "enrich_active": true
   },
-  "current_watcher_log": "2026-06-25 22:51:39,233 INFO    picardwatch: Judging: Alicia Keys-Here-24BIT-WEB-FLAC-2016-TiMES-xpost",
+  "current_watcher_log": "2026-06-25 23:03:10,605 INFO    picardwatch:   Imported OK.",
   "current_enrich_log": "2026-06-25 22:47:44,465 INFO    picardwatch.enrich: enriched Jump to It (1988) (Album)  [dr=16/measured, -15.6 LUFS]"
 }
