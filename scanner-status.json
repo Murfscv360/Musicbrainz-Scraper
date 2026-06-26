@@ -1,8 +1,8 @@
 {
-  "generatedAtUTC": "2026-06-26T11:53:27.206627+00:00",
+  "generatedAtUTC": "2026-06-26T12:03:27.240785+00:00",
   "scanner": {
     "imported": 1954,
-    "review": 1636,
+    "review": 1633,
     "duplicate": 0,
     "failed": 0,
     "decided_total": 7071,
@@ -10,17 +10,17 @@
     "decided_60m": 0,
     "decided_24h": 95,
     "last_decision_utc": "2026-06-26T05:16:51.489559+00:00",
-    "mins_since_last_decision": 396.6
+    "mins_since_last_decision": 406.6
   },
   "health": {
     "supervisor_running": true,
     "watcher_running": true,
     "enrich_running": true,
-    "watcher_log_age_min": 14.3,
-    "enrich_log_age_min": 28.3,
+    "watcher_log_age_min": 3.7,
+    "enrich_log_age_min": 38.3,
     "watcher_active": true,
     "enrich_active": true
   },
-  "current_watcher_log": "2026-06-26 06:39:08,940 INFO    picardwatch.watcher: Watching 2 folder(s): Y:\\SABNZDB\\APPLE AUDIO; D:\\MUSIC (PLEX)\\Albums  (stop with: run.py --stop  or  stop.ps1)",
+  "current_watcher_log": "2026-06-26 06:59:44,088 INFO    picardwatch.watcher: Watching 2 folder(s): Y:\\SABNZDB\\APPLE AUDIO; D:\\MUSIC (PLEX)\\Albums  (stop with: run.py --stop  or  stop.ps1)",
   "current_enrich_log": "2026-06-26 06:25:07,284 INFO    picardwatch.enrich: enriched Runnin\u2019 Out of Fools (1964) (Album)  [dr=13/measured, -13.2 LUFS]"
 }
