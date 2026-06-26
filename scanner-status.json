@@ -1,23 +1,23 @@
 {
-  "generatedAtUTC": "2026-06-26T05:23:26.974102+00:00",
+  "generatedAtUTC": "2026-06-26T05:33:26.897629+00:00",
   "scanner": {
     "imported": 1954,
-    "review": 2239,
-    "duplicate": 59,
+    "review": 2178,
+    "duplicate": 0,
     "failed": 0,
     "decided_total": 7071,
-    "decided_15m": 6,
-    "decided_60m": 33,
+    "decided_15m": 0,
+    "decided_60m": 22,
     "decided_24h": 95,
     "last_decision_utc": "2026-06-26T05:16:51.489559+00:00",
-    "mins_since_last_decision": 6.6
+    "mins_since_last_decision": 16.6
   },
   "health": {
     "supervisor_running": true,
     "watcher_running": true,
     "enrich_running": true,
-    "watcher_log_age_min": 6.5,
-    "enrich_log_age_min": 31.6,
+    "watcher_log_age_min": 16.5,
+    "enrich_log_age_min": 41.6,
     "watcher_active": true,
     "enrich_active": true
   },
