@@ -73,10 +73,10 @@ try:
 except Exception:
     pass
 
-# 4) tidy a batch of already-decided folders out of the input each tick (delete duplicates,
-#    archive review) so the watcher's scan stays small and the input drains toward empty.
+# 4) tidy a batch of already-decided folders out of the input each tick (delete duplicates
+#    AND reviews) so the watcher's scan stays small and the input drains toward empty.
 try:
     if not _locked("picardwatch-tidy.lock"):
-        _launch(["--tidy-input", "--limit", "200"])
+        _launch(["--tidy-input", "--delete-review", "--limit", "500"])
 except Exception:
     pass
