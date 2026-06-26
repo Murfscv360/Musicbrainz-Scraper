@@ -1,21 +1,21 @@
 # PicardWatch — scanner status
 
-_Auto-updated 2026-06-26 04:33 UTC (every ~15 min). Machine-readable: scanner-status.json_
+_Auto-updated 2026-06-26 04:43 UTC (every ~15 min). Machine-readable: scanner-status.json_
 
 ## Library (cumulative decisions)
 | Imported | Review | Duplicate | Failed | Total |
 |---:|---:|---:|---:|---:|
-| **1951** | 2237 | 1044 | 0 | 7052 |
+| **1952** | 2238 | 845 | 0 | 7055 |
 
 ## Pace
-- Decided — last 15 min: **14**, last hour: **27**, last 24h: **73**
-- Last decision: 2026-06-26T04:32:17.980361+00:00 (1.2 min ago)
+- Decided — last 15 min: **6**, last hour: **28**, last 24h: **76**
+- Last decision: 2026-06-26T04:40:52.976129+00:00 (2.6 min ago)
 
 ## Daemons
 - supervisor: UP · watcher: UP · enrich: UP
-- watcher log age: 1.1 min (ACTIVE) · enrich log age: 27.9 min (ACTIVE)
+- watcher log age: 2.6 min (ACTIVE) · enrich log age: 37.9 min (ACTIVE)
 
 ## Currently
-- watcher: `2026-06-25 23:32:19,533 INFO    picardwatch: Judging: Commodores-Commodores-Remastered-24BIT-192KHZ-WEB-FLAC-2015-TiMES-xpost.1`
+- watcher: `2026-06-25 23:40:55,067 INFO    picardwatch: Judging: Marvin Gaye-I Want You-[24BIT]-[WEBFLAC]-[1976]-TDS`
 - enrich: `2026-06-25 23:05:36,690 INFO    picardwatch.enrich: enriched Lady Soul (1968) (Album)  [dr=16/measured, -15.9 LUFS]`
 

@@ -1,26 +1,26 @@
 {
-  "generatedAtUTC": "2026-06-26T04:33:27.213564+00:00",
+  "generatedAtUTC": "2026-06-26T04:43:27.156514+00:00",
   "scanner": {
-    "imported": 1951,
-    "review": 2237,
-    "duplicate": 1044,
+    "imported": 1952,
+    "review": 2238,
+    "duplicate": 845,
     "failed": 0,
-    "decided_total": 7052,
-    "decided_15m": 14,
-    "decided_60m": 27,
-    "decided_24h": 73,
-    "last_decision_utc": "2026-06-26T04:32:17.980361+00:00",
-    "mins_since_last_decision": 1.2
+    "decided_total": 7055,
+    "decided_15m": 6,
+    "decided_60m": 28,
+    "decided_24h": 76,
+    "last_decision_utc": "2026-06-26T04:40:52.976129+00:00",
+    "mins_since_last_decision": 2.6
   },
   "health": {
     "supervisor_running": true,
     "watcher_running": true,
     "enrich_running": true,
-    "watcher_log_age_min": 1.1,
-    "enrich_log_age_min": 27.9,
+    "watcher_log_age_min": 2.6,
+    "enrich_log_age_min": 37.9,
     "watcher_active": true,
     "enrich_active": true
   },
-  "current_watcher_log": "2026-06-25 23:32:19,533 INFO    picardwatch: Judging: Commodores-Commodores-Remastered-24BIT-192KHZ-WEB-FLAC-2015-TiMES-xpost.1",
+  "current_watcher_log": "2026-06-25 23:40:55,067 INFO    picardwatch: Judging: Marvin Gaye-I Want You-[24BIT]-[WEBFLAC]-[1976]-TDS",
   "current_enrich_log": "2026-06-25 23:05:36,690 INFO    picardwatch.enrich: enriched Lady Soul (1968) (Album)  [dr=16/measured, -15.9 LUFS]"
 }
