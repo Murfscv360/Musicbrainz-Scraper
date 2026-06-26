@@ -29,24 +29,28 @@ def find_albums(root, audio_exts):
     while stack:
         folder, depth = stack.pop()
         try:
-            entries = list(folder.iterdir())
+            with os.scandir(folder) as sd:
+                entries = list(sd)
         except OSError:
             continue
-        if any(e.is_file() and e.suffix.lower() in exts for e in entries):
+        # DirEntry.is_file()/is_dir() use cached type info from the directory enumeration
+        # on Windows (FindNextFile), avoiding a separate stat round-trip per entry over SMB.
+        if any(e.is_file() and os.path.splitext(e.name)[1].lower() in exts for e in entries):
             yield folder                       # directly contains audio -> album
             continue
-        subdirs = [e for e in entries if e.is_dir()]
+        subdirs = [e for e in entries if e.is_dir(follow_symlinks=False)]
         if (subdirs and all(_DISC_RE.match(d.name) for d in subdirs)
-                and any(_dir_has_audio(d, exts) for d in subdirs)):
+                and any(_dir_has_audio(d.path, exts) for d in subdirs)):
             yield folder                       # multi-disc album (CD1/CD2/...)
             continue
         if depth < _MAX_DEPTH:
-            stack.extend((d, depth + 1) for d in subdirs)
+            stack.extend((Path(d.path), depth + 1) for d in subdirs)
 
 
-def _dir_has_audio(folder: Path, exts) -> bool:
+def _dir_has_audio(path, exts) -> bool:
     try:
-        return any(p.is_file() and p.suffix.lower() in exts for p in folder.iterdir())
+        with os.scandir(path) as sd:
+            return any(e.is_file() and os.path.splitext(e.name)[1].lower() in exts for e in sd)
     except OSError:
         return False
 

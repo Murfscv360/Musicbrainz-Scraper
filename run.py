@@ -38,12 +38,22 @@ def make_processor(cfg, state, judge, runner, dry_run, force=False):
 
     def process(folder) -> None:
         folder = Path(folder)
+        # Fast skip: one stat() call instead of rglob+stat-per-file over SMB.
+        # If the folder mtime hasn't changed since the decision it's unmodified — skip.
+        prior = state.get(str(folder))
+        if not force and prior and prior["status"] in ("imported", "review", "duplicate", "tidied"):
+            try:
+                if folder.stat().st_mtime <= prior["decided_at"]:
+                    log.debug("Unchanged mtime (%s): %s", prior["status"], folder.name)
+                    return
+            except OSError:
+                pass
+
         sig = folder_signature(folder, exts)
         if sig is None:
             log.debug("No audio in %s - skipping", folder.name)
             return
 
-        prior = state.get(str(folder))
         if not force and prior and prior["signature"] == sig and prior["status"] in ("imported", "review", "duplicate"):
             log.debug("Unchanged since last decision (%s): %s", prior["status"], folder.name)
             return
