@@ -1,8 +1,8 @@
 {
-  "generatedAtUTC": "2026-06-26T07:33:27.220167+00:00",
+  "generatedAtUTC": "2026-06-26T07:43:27.119193+00:00",
   "scanner": {
     "imported": 1954,
-    "review": 1752,
+    "review": 1745,
     "duplicate": 0,
     "failed": 0,
     "decided_total": 7071,
@@ -10,17 +10,17 @@
     "decided_60m": 0,
     "decided_24h": 95,
     "last_decision_utc": "2026-06-26T05:16:51.489559+00:00",
-    "mins_since_last_decision": 136.6
+    "mins_since_last_decision": 146.6
   },
   "health": {
     "supervisor_running": true,
     "watcher_running": true,
     "enrich_running": true,
-    "watcher_log_age_min": 8.4,
-    "enrich_log_age_min": 8.2,
+    "watcher_log_age_min": 4.8,
+    "enrich_log_age_min": 8.1,
     "watcher_active": true,
     "enrich_active": true
   },
-  "current_watcher_log": "2026-06-26 02:25:03,630 INFO    picardwatch.watcher:   ...1600 album folders scanned in D:\\MUSIC (PLEX)\\Albums",
-  "current_enrich_log": "2026-06-26 02:25:14,192 INFO    picardwatch.enrich: enriched Paradise (2021) (Single)  [dr=None/-]"
+  "current_watcher_log": "2026-06-26 02:38:38,439 INFO    picardwatch.watcher: Scanning Y:\\SABNZDB\\APPLE AUDIO ...",
+  "current_enrich_log": "2026-06-26 02:35:23,640 INFO    picardwatch.enrich: enriched City of Gods (Part II) (2022) (Single)  [dr=None/-]"
 }
