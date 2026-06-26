@@ -1,8 +1,8 @@
 {
-  "generatedAtUTC": "2026-06-26T08:13:27.238647+00:00",
+  "generatedAtUTC": "2026-06-26T08:23:27.067132+00:00",
   "scanner": {
     "imported": 1954,
-    "review": 1736,
+    "review": 1734,
     "duplicate": 0,
     "failed": 0,
     "decided_total": 7071,
@@ -10,17 +10,17 @@
     "decided_60m": 0,
     "decided_24h": 95,
     "last_decision_utc": "2026-06-26T05:16:51.489559+00:00",
-    "mins_since_last_decision": 176.6
+    "mins_since_last_decision": 186.6
   },
   "health": {
     "supervisor_running": true,
     "watcher_running": true,
     "enrich_running": true,
-    "watcher_log_age_min": 14.6,
-    "enrich_log_age_min": 38.1,
+    "watcher_log_age_min": 4.0,
+    "enrich_log_age_min": 48.1,
     "watcher_active": true,
     "enrich_active": true
   },
-  "current_watcher_log": "2026-06-26 02:58:51,468 INFO    picardwatch.watcher: Watching 2 folder(s): Y:\\SABNZDB\\APPLE AUDIO; D:\\MUSIC (PLEX)\\Albums  (stop with: run.py --stop  or  stop.ps1)",
+  "current_watcher_log": "2026-06-26 03:19:24,663 INFO    picardwatch.watcher: Watching 2 folder(s): Y:\\SABNZDB\\APPLE AUDIO; D:\\MUSIC (PLEX)\\Albums  (stop with: run.py --stop  or  stop.ps1)",
   "current_enrich_log": "2026-06-26 02:35:23,640 INFO    picardwatch.enrich: enriched City of Gods (Part II) (2022) (Single)  [dr=None/-]"
 }
