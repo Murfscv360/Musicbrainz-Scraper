@@ -1,26 +1,26 @@
 {
-  "generatedAtUTC": "2026-06-26T04:03:27.906745+00:00",
+  "generatedAtUTC": "2026-06-26T04:13:27.080119+00:00",
   "scanner": {
-    "imported": 1948,
+    "imported": 1949,
     "review": 2236,
-    "duplicate": 1631,
+    "duplicate": 1434,
     "failed": 0,
-    "decided_total": 7035,
-    "decided_15m": 6,
+    "decided_total": 7039,
+    "decided_15m": 5,
     "decided_60m": 12,
-    "decided_24h": 54,
-    "last_decision_utc": "2026-06-26T04:03:10.513856+00:00",
-    "mins_since_last_decision": 0.3
+    "decided_24h": 58,
+    "last_decision_utc": "2026-06-26T04:09:02.674704+00:00",
+    "mins_since_last_decision": 4.4
   },
   "health": {
     "supervisor_running": true,
     "watcher_running": true,
     "enrich_running": true,
-    "watcher_log_age_min": 0.4,
-    "enrich_log_age_min": 15.8,
+    "watcher_log_age_min": 4.4,
+    "enrich_log_age_min": 7.9,
     "watcher_active": true,
     "enrich_active": true
   },
-  "current_watcher_log": "2026-06-25 23:03:10,605 INFO    picardwatch:   Imported OK.",
-  "current_enrich_log": "2026-06-25 22:47:44,465 INFO    picardwatch.enrich: enriched Jump to It (1988) (Album)  [dr=16/measured, -15.6 LUFS]"
+  "current_watcher_log": "2026-06-25 23:09:03,793 INFO    picardwatch: Judging: Marvin Gaye-A Tribute To The Great Nat King Cole-24BIT-192KHZ-WEB-FLAC-1965-TiMES",
+  "current_enrich_log": "2026-06-25 23:05:36,690 INFO    picardwatch.enrich: enriched Lady Soul (1968) (Album)  [dr=16/measured, -15.9 LUFS]"
 }
