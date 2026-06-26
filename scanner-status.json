@@ -1,8 +1,8 @@
 {
-  "generatedAtUTC": "2026-06-26T10:53:27.273001+00:00",
+  "generatedAtUTC": "2026-06-26T11:03:27.287001+00:00",
   "scanner": {
     "imported": 1954,
-    "review": 1661,
+    "review": 1649,
     "duplicate": 0,
     "failed": 0,
     "decided_total": 7071,
@@ -10,17 +10,17 @@
     "decided_60m": 0,
     "decided_24h": 95,
     "last_decision_utc": "2026-06-26T05:16:51.489559+00:00",
-    "mins_since_last_decision": 336.6
+    "mins_since_last_decision": 346.6
   },
   "health": {
     "supervisor_running": true,
     "watcher_running": true,
     "enrich_running": true,
-    "watcher_log_age_min": 14.5,
-    "enrich_log_age_min": 93.9,
+    "watcher_log_age_min": 5.5,
+    "enrich_log_age_min": 103.9,
     "watcher_active": true,
     "enrich_active": false
   },
-  "current_watcher_log": "2026-06-26 05:38:57,376 INFO    picardwatch.watcher: Watching 2 folder(s): Y:\\SABNZDB\\APPLE AUDIO; D:\\MUSIC (PLEX)\\Albums  (stop with: run.py --stop  or  stop.ps1)",
+  "current_watcher_log": "2026-06-26 05:57:58,320 INFO    picardwatch.watcher: Scanning Y:\\SABNZDB\\APPLE AUDIO ...",
   "current_enrich_log": "2026-06-26 04:19:32,218 INFO    picardwatch.enrich: enriched Here (2016) (Album)  [dr=17/measured, -17.1 LUFS]"
 }
