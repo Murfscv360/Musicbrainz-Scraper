@@ -1,26 +1,26 @@
 {
-  "generatedAtUTC": "2026-06-26T12:48:13.169038+00:00",
+  "generatedAtUTC": "2026-06-26T12:53:27.352179+00:00",
   "scanner": {
     "imported": 1954,
-    "review": 1621,
-    "duplicate": 0,
+    "review": 1620,
+    "duplicate": 1,
     "failed": 0,
     "decided_total": 7071,
-    "decided_15m": 0,
-    "decided_60m": 0,
-    "decided_24h": 95,
-    "last_decision_utc": "2026-06-26T05:16:51.489559+00:00",
-    "mins_since_last_decision": 451.4
+    "decided_15m": 1,
+    "decided_60m": 1,
+    "decided_24h": 96,
+    "last_decision_utc": "2026-06-26T12:50:27.423676+00:00",
+    "mins_since_last_decision": 3.0
   },
   "health": {
     "supervisor_running": true,
-    "watcher_running": false,
+    "watcher_running": true,
     "enrich_running": true,
-    "watcher_log_age_min": 1.9,
-    "enrich_log_age_min": 83.1,
+    "watcher_log_age_min": 3.0,
+    "enrich_log_age_min": 1.0,
     "watcher_active": true,
-    "enrich_active": false
+    "enrich_active": true
   },
-  "current_watcher_log": "2026-06-26 07:46:20,572 INFO    picardwatch.watcher: Scanning Y:\\SABNZDB\\APPLE AUDIO ...",
-  "current_enrich_log": "2026-06-26 06:25:07,284 INFO    picardwatch.enrich: enriched Runnin\u2019 Out of Fools (1964) (Album)  [dr=13/measured, -13.2 LUFS]"
+  "current_watcher_log": "2026-06-26 07:50:27,422 INFO    picardwatch:   DUPLICATE (identical to Bob Marley and The Wailers-One Love-OST-24BIT-96KHZ-WEB-FLAC-2024-OBZEN [imported]) - skipping",
+  "current_enrich_log": "2026-06-26 07:52:27,338 INFO    picardwatch.enrich: enriched Soul '69 (1969) (Album)  [dr=None/-]"
 }
