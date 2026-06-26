@@ -1,21 +1,21 @@
 # PicardWatch — scanner status
 
-_Auto-updated 2026-06-26 08:53 UTC (every ~15 min). Machine-readable: scanner-status.json_
+_Auto-updated 2026-06-26 09:03 UTC (every ~15 min). Machine-readable: scanner-status.json_
 
 ## Library (cumulative decisions)
 | Imported | Review | Duplicate | Failed | Total |
 |---:|---:|---:|---:|---:|
-| **1954** | 1723 | 0 | 0 | 7071 |
+| **1954** | 1717 | 0 | 0 | 7071 |
 
 ## Pace
 - Decided — last 15 min: **0**, last hour: **0**, last 24h: **95**
-- Last decision: 2026-06-26T05:16:51.489559+00:00 (216.6 min ago)
+- Last decision: 2026-06-26T05:16:51.489559+00:00 (226.6 min ago)
 
 ## Daemons
 - supervisor: UP · watcher: UP · enrich: UP
-- watcher log age: 13.4 min (ACTIVE) · enrich log age: 78.1 min (stale/idle)
+- watcher log age: 2.8 min (ACTIVE) · enrich log age: 88.1 min (stale/idle)
 
 ## Currently
-- watcher: `2026-06-26 03:40:00,522 INFO    picardwatch.watcher: Watching 2 folder(s): Y:\SABNZDB\APPLE AUDIO; D:\MUSIC (PLEX)\Albums  (stop with: run.py --stop  or  stop.ps1)`
+- watcher: `2026-06-26 04:00:36,709 INFO    picardwatch.watcher: Watching 2 folder(s): Y:\SABNZDB\APPLE AUDIO; D:\MUSIC (PLEX)\Albums  (stop with: run.py --stop  or  stop.ps1)`
 - enrich: `2026-06-26 02:35:23,640 INFO    picardwatch.enrich: enriched City of Gods (Part II) (2022) (Single)  [dr=None/-]`
 
