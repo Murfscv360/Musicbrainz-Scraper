@@ -1,8 +1,8 @@
 {
-  "generatedAtUTC": "2026-06-26T09:13:27.480050+00:00",
+  "generatedAtUTC": "2026-06-26T09:23:27.082974+00:00",
   "scanner": {
     "imported": 1954,
-    "review": 1713,
+    "review": 1709,
     "duplicate": 0,
     "failed": 0,
     "decided_total": 7071,
@@ -10,17 +10,17 @@
     "decided_60m": 0,
     "decided_24h": 95,
     "last_decision_utc": "2026-06-26T05:16:51.489559+00:00",
-    "mins_since_last_decision": 236.6
+    "mins_since_last_decision": 246.6
   },
   "health": {
     "supervisor_running": true,
     "watcher_running": true,
     "enrich_running": true,
-    "watcher_log_age_min": 12.9,
-    "enrich_log_age_min": 98.1,
+    "watcher_log_age_min": 2.3,
+    "enrich_log_age_min": 3.9,
     "watcher_active": true,
-    "enrich_active": false
+    "enrich_active": true
   },
-  "current_watcher_log": "2026-06-26 04:00:36,709 INFO    picardwatch.watcher: Watching 2 folder(s): Y:\\SABNZDB\\APPLE AUDIO; D:\\MUSIC (PLEX)\\Albums  (stop with: run.py --stop  or  stop.ps1)",
-  "current_enrich_log": "2026-06-26 02:35:23,640 INFO    picardwatch.enrich: enriched City of Gods (Part II) (2022) (Single)  [dr=None/-]"
+  "current_watcher_log": "2026-06-26 04:21:10,687 INFO    picardwatch.watcher: Watching 2 folder(s): Y:\\SABNZDB\\APPLE AUDIO; D:\\MUSIC (PLEX)\\Albums  (stop with: run.py --stop  or  stop.ps1)",
+  "current_enrich_log": "2026-06-26 04:19:32,218 INFO    picardwatch.enrich: enriched Here (2016) (Album)  [dr=17/measured, -17.1 LUFS]"
 }
