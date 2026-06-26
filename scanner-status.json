@@ -1,26 +1,26 @@
 {
-  "generatedAtUTC": "2026-06-26T03:33:27.037211+00:00",
+  "generatedAtUTC": "2026-06-26T03:43:27.038255+00:00",
   "scanner": {
-    "imported": 1944,
+    "imported": 1945,
     "review": 2236,
-    "duplicate": 2228,
+    "duplicate": 2029,
     "failed": 0,
-    "decided_total": 7028,
-    "decided_15m": 0,
-    "decided_60m": 13,
-    "decided_24h": 46,
-    "last_decision_utc": "2026-06-26T03:10:31.467716+00:00",
-    "mins_since_last_decision": 22.9
+    "decided_total": 7030,
+    "decided_15m": 2,
+    "decided_60m": 8,
+    "decided_24h": 48,
+    "last_decision_utc": "2026-06-26T03:42:59.480601+00:00",
+    "mins_since_last_decision": 0.5
   },
   "health": {
     "supervisor_running": true,
     "watcher_running": true,
     "enrich_running": true,
-    "watcher_log_age_min": 1.7,
-    "enrich_log_age_min": 11.1,
+    "watcher_log_age_min": 0.3,
+    "enrich_log_age_min": 8.9,
     "watcher_active": true,
     "enrich_active": true
   },
-  "current_watcher_log": "2026-06-25 22:31:47,661 INFO    picardwatch.watcher: Watching 2 folder(s): Y:\\SABNZDB\\APPLE AUDIO; D:\\MUSIC (PLEX)\\Albums  (stop with: run.py --stop  or  stop.ps1)",
-  "current_enrich_log": "2026-06-25 22:22:23,322 INFO    picardwatch.enrich: enriched Paradise (2021) (Single)  [dr=None/-]"
+  "current_watcher_log": "2026-06-25 22:43:11,772 INFO    picardwatch: Judging: Marvin Gaye and Mary Wells-Together-24BIT-192KHZ-WEB-FLAC-1964-TiMES-xpost",
+  "current_enrich_log": "2026-06-25 22:34:35,836 INFO    picardwatch.enrich: enriched I Never Loved a Man the Way I Love You (1967) (Album)  [dr=16/measured, -16.5 LUFS]"
 }
