@@ -69,16 +69,17 @@ def watch(cfg, handler: Callable[[Path], None]) -> None:
     log.info("Watching %d folder(s): %s  (stop with: run.py --stop  or  stop.ps1)",
              len(existing), "; ".join(str(r) for r in existing))
 
-    # One-shot tidy of leftover empty husks in nested libraries (e.g. emptied genre
-    # folders from a previous run). Only the nested 'extra_inputs' are swept — the flat
-    # primary input rarely has husks and may be a slow network drive.
+    # One-shot tidy of leftover empty husks in nested libraries — run in a daemon thread
+    # so it never blocks the main scan loop (D: can have thousands of folders).
     extras = {str(Path(r).resolve()) for r in (getattr(cfg.paths, "extra_inputs", []) or [])}
-    for r in existing:
-        try:
-            if str(r.resolve()) in extras:
-                cleanup.sweep_empty_dirs(r)
-        except Exception:
-            log.exception("Startup cleanup sweep failed for %s", r)
+    def _startup_sweep():
+        for r in existing:
+            try:
+                if str(r.resolve()) in extras:
+                    cleanup.sweep_empty_dirs(r)
+            except Exception:
+                log.exception("Startup cleanup sweep failed for %s", r)
+    threading.Thread(target=_startup_sweep, daemon=True, name="startup-sweep").start()
 
     try:
         while True:
