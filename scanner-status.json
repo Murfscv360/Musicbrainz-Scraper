@@ -1,26 +1,26 @@
 {
-  "generatedAtUTC": "2026-06-26T02:43:27.488499+00:00",
+  "generatedAtUTC": "2026-06-26T02:53:26.835518+00:00",
   "scanner": {
     "imported": 1943,
-    "review": 2235,
-    "duplicate": 2624,
+    "review": 2236,
+    "duplicate": 2476,
     "failed": 0,
-    "decided_total": 7022,
-    "decided_15m": 13,
-    "decided_60m": 27,
-    "decided_24h": 40,
-    "last_decision_utc": "2026-06-26T02:41:53.991821+00:00",
-    "mins_since_last_decision": 1.6
+    "decided_total": 7024,
+    "decided_15m": 6,
+    "decided_60m": 29,
+    "decided_24h": 42,
+    "last_decision_utc": "2026-06-26T02:46:54.411099+00:00",
+    "mins_since_last_decision": 6.5
   },
   "health": {
     "supervisor_running": true,
     "watcher_running": true,
     "enrich_running": true,
-    "watcher_log_age_min": 1.4,
-    "enrich_log_age_min": 5.2,
+    "watcher_log_age_min": 3.9,
+    "enrich_log_age_min": 15.2,
     "watcher_active": true,
     "enrich_active": true
   },
-  "current_watcher_log": "2026-06-25 21:42:02,385 INFO    picardwatch: Judging: George Ezra - Staying at Tamara's (2018 Pop Rock) [Flac 24-44]-xpost",
+  "current_watcher_log": "2026-06-25 21:49:35,344 INFO    picardwatch: Judging: Teddy Swims-Unlearning-24BIT-44KHZ-WEB-FLAC-2021-OBZEN",
   "current_enrich_log": "2026-06-25 21:38:18,000 INFO    picardwatch.enrich: enriched Diet Pepsi (2024) (Single)  [dr=10/measured, -9.2 LUFS]"
 }
