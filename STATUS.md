@@ -1,19 +1,19 @@
 # PicardWatch — scanner status
 
-_Auto-updated 2026-06-26 09:03 UTC (every ~15 min). Machine-readable: scanner-status.json_
+_Auto-updated 2026-06-26 09:13 UTC (every ~15 min). Machine-readable: scanner-status.json_
 
 ## Library (cumulative decisions)
 | Imported | Review | Duplicate | Failed | Total |
 |---:|---:|---:|---:|---:|
-| **1954** | 1717 | 0 | 0 | 7071 |
+| **1954** | 1713 | 0 | 0 | 7071 |
 
 ## Pace
 - Decided — last 15 min: **0**, last hour: **0**, last 24h: **95**
-- Last decision: 2026-06-26T05:16:51.489559+00:00 (226.6 min ago)
+- Last decision: 2026-06-26T05:16:51.489559+00:00 (236.6 min ago)
 
 ## Daemons
 - supervisor: UP · watcher: UP · enrich: UP
-- watcher log age: 2.8 min (ACTIVE) · enrich log age: 88.1 min (stale/idle)
+- watcher log age: 12.9 min (ACTIVE) · enrich log age: 98.1 min (stale/idle)
 
 ## Currently
 - watcher: `2026-06-26 04:00:36,709 INFO    picardwatch.watcher: Watching 2 folder(s): Y:\SABNZDB\APPLE AUDIO; D:\MUSIC (PLEX)\Albums  (stop with: run.py --stop  or  stop.ps1)`
