@@ -133,6 +133,7 @@ def main() -> None:
     mode.add_argument("--folder", help="process a single album folder and exit")
     mode.add_argument("--status", action="store_true", help="print a progress snapshot (moved/remaining/ETA) and exit")
     mode.add_argument("--prune-cache", action="store_true", help="cap the MB/AcoustID response cache (grows unbounded) and exit; add --vacuum to reclaim disk")
+    mode.add_argument("--tidy-input", action="store_true", help="remove already-decided folders from the input(s): delete duplicates, archive review folders; batch via --limit. Run periodically.")
     mode.add_argument("--retag", action="store_true", help="re-tag + re-organize the existing library to the current standard, then exit")
     mode.add_argument("--enrich", action="store_true", help="write audiophile-enrichment sidecars (audiophile.json) for the library; add --analyze for ffmpeg loudness/DR/waveform")
     mode.add_argument("--start-enrich", action="store_true", help="clear stop/done flags and launch the enrichment worker (Tier-2) in the background; it auto-restarts via the keepalive task")
@@ -145,6 +146,7 @@ def main() -> None:
     ap.add_argument("--out", default="", help="repo dir for --catalogue (default: catalogue.repo_dir in config)")
     ap.add_argument("--push", action="store_true", help="with --catalogue: git commit + push collection.json to its repo")
     ap.add_argument("--vacuum", action="store_true", help="with --prune-cache: VACUUM to reclaim freed space (needs the watcher stopped)")
+    ap.add_argument("--delete-review", action="store_true", help="with --tidy-input: DELETE review folders instead of archiving them")
     ap.add_argument("--analyze", action="store_true", help="with --enrich: also run ffmpeg loudness/LRA/true-peak/waveform (slow; needs ffmpeg on PATH)")
     ap.add_argument("--force", action="store_true", help="re-judge even if this exact folder was decided before")
     ap.add_argument("-v", "--verbose", action="store_true")
@@ -160,6 +162,7 @@ def main() -> None:
     log_file = ("supervisor.log" if args.supervise else
                 "enrich.log" if args.enrich else
                 "catalogue.log" if args.catalogue else
+                "tidy.log" if args.tidy_input else
                 "picardwatch.log")
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
@@ -241,6 +244,13 @@ def main() -> None:
         if args.vacuum:
             print("VACUUM (reclaiming disk; needs exclusive access)...")
             print("Done." if state.vacuum() else "VACUUM skipped — DB locked (stop the watcher first).")
+        return
+    if args.tidy_input:
+        from picardwatch import cleanup
+        _tlock = _single_instance_lock(cfg, "picardwatch-tidy.lock", "--tidy-input")  # noqa: F841
+        r = cleanup.tidy_input(cfg, state, limit=(args.limit or 300), delete_review=args.delete_review)
+        print(f"tidy-input: deleted {r['deleted']}, archived {r['archived']}, "
+              f"pruned {r['pruned']} empties, skipped {r['skipped']}")
         return
     if args.retag:
         from picardwatch import retag

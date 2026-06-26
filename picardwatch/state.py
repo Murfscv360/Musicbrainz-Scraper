@@ -163,6 +163,12 @@ class State:
         except sqlite3.OperationalError:
             return False
 
+    def mark_tidied(self, folder: str) -> None:
+        """Mark an already-decided source as removed from the input: status 'tidied' excludes it
+        from future tidy passes and the review report. Import/dedup history stays (by signature)."""
+        self.db.execute("UPDATE albums SET status='tidied' WHERE folder=?", (folder,))
+        self.db.commit()
+
 
 def folder_signature(folder: str | Path, audio_exts: list[str]) -> Optional[str]:
     """Return a stable hash of the folder's file (name, size) pairs, or None if the

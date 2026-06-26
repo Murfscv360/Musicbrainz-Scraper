@@ -135,3 +135,85 @@ def _matching_input_root(path, cfg):
             if best is None or len(str(rr)) > len(str(best)):
                 best = rr
     return best
+
+
+def archive_folder(folder, archive_root) -> bool:
+    """Move `folder` into `archive_root` (same-volume rename when possible) instead of deleting —
+    preserves it out of the scan path. True if it's no longer at the original location."""
+    folder = Path(folder)
+    if not folder.exists():
+        return True
+    archive_root = Path(archive_root)
+    try:
+        archive_root.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        return False
+    dest = archive_root / folder.name
+    i = 1
+    while dest.exists():
+        dest = archive_root / f"{folder.name}__{i}"
+        i += 1
+    try:
+        os.replace(folder, dest)            # same NAS volume -> fast rename, no copy
+        return True
+    except OSError:
+        try:
+            shutil.move(str(folder), str(dest))
+            return True
+        except Exception:
+            return False
+
+
+def tidy_input(cfg, state, limit: int = 300, delete_review: bool = False) -> dict:
+    """Remove already-decided folders from the input root(s) so the watcher's scan stays small and
+    the input drains toward empty. Duplicates are DELETED (redundant — identical content is already
+    imported to the library or kept as a review); review folders are ARCHIVED next to the input
+    (or deleted when delete_review). Batch-limited; each handled folder is marked 'tidied' so passes
+    advance. SAFETY: only ever acts strictly inside an input root — never the library or elsewhere."""
+    roots = []
+    for r in discovery.input_roots(cfg):
+        try:
+            roots.append(Path(r).resolve())
+        except OSError:
+            pass
+    if not roots:
+        return {"deleted": 0, "archived": 0, "pruned": 0, "skipped": 0}
+    prim = Path(cfg.paths.input)
+    archive_root = prim.parent / (prim.name + "_REVIEWED")
+
+    rows = state.db.execute(
+        "SELECT folder, status FROM albums WHERE status IN ('duplicate','review') "
+        "ORDER BY status ASC LIMIT ?", (int(limit),)).fetchall()
+    deleted = archived = pruned = skipped = 0
+    for row in rows:
+        folder, status = row["folder"], row["status"]
+        p = Path(folder)
+        try:
+            rp = p.resolve()
+        except OSError:
+            rp = p
+        if not any(rt in rp.parents for rt in roots):   # strictly inside an input root, or skip
+            state.mark_tidied(folder)
+            skipped += 1
+            continue
+        if not p.exists():
+            state.mark_tidied(folder)
+            skipped += 1
+            continue
+        ok = False
+        if status == "duplicate" or (status == "review" and delete_review):
+            ok = remove_source_tree(p)
+            if ok:
+                deleted += 1
+        else:                                            # review -> archive (preserve)
+            ok = archive_folder(p, archive_root)
+            if ok:
+                archived += 1
+        if ok:
+            root = _matching_input_root(folder, cfg)
+            if root:
+                pruned += prune_empty_parents(folder, root)
+            state.mark_tidied(folder)
+    log.info("tidy_input: deleted %d, archived %d, pruned %d empties, skipped %d (scanned %d)",
+             deleted, archived, pruned, skipped, len(rows))
+    return {"deleted": deleted, "archived": archived, "pruned": pruned, "skipped": skipped}

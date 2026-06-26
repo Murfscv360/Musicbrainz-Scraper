@@ -64,3 +64,19 @@ if (not _exists("picardwatch-enrich.done")
         and not _exists("picardwatch-enrich.stop")
         and not _locked("picardwatch-enrich.lock")):
     _launch(["--enrich", "--analyze"])
+
+
+# 3) publish a status snapshot to the repo every keepalive tick (~10 min) so the scanner can
+#    be monitored from another session; fire-and-forget so it never blocks the relaunch logic.
+try:
+    subprocess.Popen([_pyw(), os.path.join(HERE, "publish_status.py")], creationflags=NO_WINDOW)
+except Exception:
+    pass
+
+# 4) tidy a batch of already-decided folders out of the input each tick (delete duplicates,
+#    archive review) so the watcher's scan stays small and the input drains toward empty.
+try:
+    if not _locked("picardwatch-tidy.lock"):
+        _launch(["--tidy-input", "--limit", "200"])
+except Exception:
+    pass
