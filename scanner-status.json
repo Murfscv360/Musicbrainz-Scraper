@@ -1,5 +1,5 @@
 {
-  "generatedAtUTC": "2026-06-26T12:33:11.913422+00:00",
+  "generatedAtUTC": "2026-06-26T12:33:27.716021+00:00",
   "scanner": {
     "imported": 1954,
     "review": 1624,
@@ -10,14 +10,14 @@
     "decided_60m": 0,
     "decided_24h": 95,
     "last_decision_utc": "2026-06-26T05:16:51.489559+00:00",
-    "mins_since_last_decision": 436.3
+    "mins_since_last_decision": 436.6
   },
   "health": {
     "supervisor_running": true,
     "watcher_running": false,
     "enrich_running": true,
-    "watcher_log_age_min": 12.8,
-    "enrich_log_age_min": 68.1,
+    "watcher_log_age_min": 13.2,
+    "enrich_log_age_min": 68.4,
     "watcher_active": true,
     "enrich_active": false
   },
