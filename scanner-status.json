@@ -1,26 +1,26 @@
 {
-  "generatedAtUTC": "2026-06-26T05:33:26.897629+00:00",
+  "generatedAtUTC": "2026-06-26T05:43:26.933766+00:00",
   "scanner": {
     "imported": 1954,
-    "review": 2178,
+    "review": 2098,
     "duplicate": 0,
     "failed": 0,
     "decided_total": 7071,
     "decided_15m": 0,
-    "decided_60m": 22,
+    "decided_60m": 19,
     "decided_24h": 95,
     "last_decision_utc": "2026-06-26T05:16:51.489559+00:00",
-    "mins_since_last_decision": 16.6
+    "mins_since_last_decision": 26.6
   },
   "health": {
     "supervisor_running": true,
     "watcher_running": true,
     "enrich_running": true,
-    "watcher_log_age_min": 16.5,
-    "enrich_log_age_min": 41.6,
+    "watcher_log_age_min": 5.5,
+    "enrich_log_age_min": 4.3,
     "watcher_active": true,
     "enrich_active": true
   },
-  "current_watcher_log": "2026-06-26 00:16:57,580 INFO    picardwatch: Judging: Marvin Gaye-Greatest Hits Vol 2-[24BIT]-[WEBFLAC]-[1967]-TDS",
-  "current_enrich_log": "2026-06-25 23:51:50,865 INFO    picardwatch.enrich: enriched Let Me In Your Life (1974) (Album)  [dr=19/measured, -18.8 LUFS]"
+  "current_watcher_log": "2026-06-26 00:37:58,191 INFO    picardwatch.watcher: Scanning Y:\\SABNZDB\\APPLE AUDIO ...",
+  "current_enrich_log": "2026-06-26 00:39:11,973 INFO    picardwatch.enrich: enriched Live at Fillmore West (1971) (Live)  [dr=16/measured, -16.5 LUFS]"
 }
