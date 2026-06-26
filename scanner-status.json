@@ -1,26 +1,26 @@
 {
-  "generatedAtUTC": "2026-06-26T02:15:18.073680+00:00",
+  "generatedAtUTC": "2026-06-26T02:23:27.343879+00:00",
   "scanner": {
-    "imported": 1940,
-    "review": 2231,
-    "duplicate": 2827,
+    "imported": 1941,
+    "review": 2232,
+    "duplicate": 2833,
     "failed": 0,
-    "decided_total": 6998,
-    "decided_15m": 2,
-    "decided_60m": 2,
-    "decided_24h": 15,
-    "last_decision_utc": "2026-06-26T02:06:01.853978+00:00",
-    "mins_since_last_decision": 9.3
+    "decided_total": 7006,
+    "decided_15m": 9,
+    "decided_60m": 11,
+    "decided_24h": 24,
+    "last_decision_utc": "2026-06-26T02:23:15.802689+00:00",
+    "mins_since_last_decision": 0.2
   },
   "health": {
     "supervisor_running": true,
-    "watcher_running": false,
+    "watcher_running": true,
     "enrich_running": true,
-    "watcher_log_age_min": 9.2,
-    "enrich_log_age_min": 12.1,
+    "watcher_log_age_min": 0.2,
+    "enrich_log_age_min": 5.4,
     "watcher_active": true,
     "enrich_active": true
   },
-  "current_watcher_log": "2026-06-25 21:06:03,911 INFO    picardwatch: Judging: Marvin Gaye-Live At The London Palladium-24BIT-192KHZ-WEB-FLAC-1977-TiMES-xpost",
-  "current_enrich_log": "2026-06-25 21:03:12,253 INFO    picardwatch.catalogue: Walk complete: 1912 album folders cached."
+  "current_watcher_log": "2026-06-25 21:23:16,476 INFO    picardwatch: Judging: Edwin Starr-Involved-24BIT-192KHZ-WEB-FLAC-1971-TiMES-xpost.1",
+  "current_enrich_log": "2026-06-25 21:18:05,375 INFO    picardwatch.enrich: enriched Stereolithic (2014) (Album)  [dr=12/measured, -12.1 LUFS]"
 }
