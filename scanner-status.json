@@ -1,26 +1,26 @@
 {
-  "generatedAtUTC": "2026-06-26T03:03:26.837411+00:00",
+  "generatedAtUTC": "2026-06-26T03:13:30.201127+00:00",
   "scanner": {
-    "imported": 1943,
+    "imported": 1944,
     "review": 2236,
-    "duplicate": 2429,
+    "duplicate": 2428,
     "failed": 0,
-    "decided_total": 7024,
-    "decided_15m": 0,
-    "decided_60m": 29,
-    "decided_24h": 42,
-    "last_decision_utc": "2026-06-26T02:46:54.411099+00:00",
-    "mins_since_last_decision": 16.5
+    "decided_total": 7028,
+    "decided_15m": 4,
+    "decided_60m": 31,
+    "decided_24h": 46,
+    "last_decision_utc": "2026-06-26T03:10:31.467716+00:00",
+    "mins_since_last_decision": 3.1
   },
   "health": {
     "supervisor_running": true,
     "watcher_running": true,
     "enrich_running": true,
-    "watcher_log_age_min": 13.9,
-    "enrich_log_age_min": 25.2,
+    "watcher_log_age_min": 2.4,
+    "enrich_log_age_min": 35.3,
     "watcher_active": true,
     "enrich_active": true
   },
-  "current_watcher_log": "2026-06-25 21:49:35,344 INFO    picardwatch: Judging: Teddy Swims-Unlearning-24BIT-44KHZ-WEB-FLAC-2021-OBZEN",
+  "current_watcher_log": "2026-06-25 22:11:13,699 INFO    picardwatch: Judging: Eagles-The Long Run-24-96-WEB-FLAC-REMASTERED-2013-OBZEN-xpost.1",
   "current_enrich_log": "2026-06-25 21:38:18,000 INFO    picardwatch.enrich: enriched Diet Pepsi (2024) (Single)  [dr=10/measured, -9.2 LUFS]"
 }
