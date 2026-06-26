@@ -1,26 +1,26 @@
 {
-  "generatedAtUTC": "2026-06-26T03:43:27.038255+00:00",
+  "generatedAtUTC": "2026-06-26T03:53:27.014658+00:00",
   "scanner": {
-    "imported": 1945,
+    "imported": 1947,
     "review": 2236,
-    "duplicate": 2029,
+    "duplicate": 1831,
     "failed": 0,
-    "decided_total": 7030,
-    "decided_15m": 2,
-    "decided_60m": 8,
-    "decided_24h": 48,
-    "last_decision_utc": "2026-06-26T03:42:59.480601+00:00",
-    "mins_since_last_decision": 0.5
+    "decided_total": 7034,
+    "decided_15m": 6,
+    "decided_60m": 10,
+    "decided_24h": 52,
+    "last_decision_utc": "2026-06-26T03:51:37.772891+00:00",
+    "mins_since_last_decision": 1.8
   },
   "health": {
     "supervisor_running": true,
     "watcher_running": true,
     "enrich_running": true,
-    "watcher_log_age_min": 0.3,
-    "enrich_log_age_min": 8.9,
+    "watcher_log_age_min": 1.8,
+    "enrich_log_age_min": 5.7,
     "watcher_active": true,
     "enrich_active": true
   },
-  "current_watcher_log": "2026-06-25 22:43:11,772 INFO    picardwatch: Judging: Marvin Gaye and Mary Wells-Together-24BIT-192KHZ-WEB-FLAC-1964-TiMES-xpost",
-  "current_enrich_log": "2026-06-25 22:34:35,836 INFO    picardwatch.enrich: enriched I Never Loved a Man the Way I Love You (1967) (Album)  [dr=16/measured, -16.5 LUFS]"
+  "current_watcher_log": "2026-06-25 22:51:39,233 INFO    picardwatch: Judging: Alicia Keys-Here-24BIT-WEB-FLAC-2016-TiMES-xpost",
+  "current_enrich_log": "2026-06-25 22:47:44,465 INFO    picardwatch.enrich: enriched Jump to It (1988) (Album)  [dr=16/measured, -15.6 LUFS]"
 }
