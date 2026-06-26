@@ -1,8 +1,8 @@
 {
-  "generatedAtUTC": "2026-06-26T12:53:27.352179+00:00",
+  "generatedAtUTC": "2026-06-26T13:03:27.254220+00:00",
   "scanner": {
     "imported": 1954,
-    "review": 1620,
+    "review": 1612,
     "duplicate": 1,
     "failed": 0,
     "decided_total": 7071,
@@ -10,17 +10,17 @@
     "decided_60m": 1,
     "decided_24h": 96,
     "last_decision_utc": "2026-06-26T12:50:27.423676+00:00",
-    "mins_since_last_decision": 3.0
+    "mins_since_last_decision": 13.0
   },
   "health": {
     "supervisor_running": true,
     "watcher_running": true,
     "enrich_running": true,
-    "watcher_log_age_min": 3.0,
-    "enrich_log_age_min": 1.0,
+    "watcher_log_age_min": 6.0,
+    "enrich_log_age_min": 11.0,
     "watcher_active": true,
     "enrich_active": true
   },
-  "current_watcher_log": "2026-06-26 07:50:27,422 INFO    picardwatch:   DUPLICATE (identical to Bob Marley and The Wailers-One Love-OST-24BIT-96KHZ-WEB-FLAC-2024-OBZEN [imported]) - skipping",
+  "current_watcher_log": "2026-06-26 07:57:29,106 INFO    picardwatch: Judging: Carly Simon - Carly Simon (1971 - Pop) [Flac 24-192]-xpost",
   "current_enrich_log": "2026-06-26 07:52:27,338 INFO    picardwatch.enrich: enriched Soul '69 (1969) (Album)  [dr=None/-]"
 }
