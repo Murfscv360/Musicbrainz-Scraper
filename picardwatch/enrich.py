@@ -23,6 +23,7 @@ import math
 import os
 import re
 import subprocess
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -259,18 +260,9 @@ def ffmpeg_available() -> bool:
     return _FFMPEG_OK
 
 
-def _loudness(path):
-    # -f null + -nostats: no audio is muxed, only the small R128 summary hits stderr.
-    try:
-        p = subprocess.run(
-            ["ffmpeg", "-hide_banner", "-nostats", "-i", str(path),
-             "-af", "ebur128=peak=true", "-f", "null", "-"],
-            capture_output=True, text=True, timeout=180, creationflags=_CF)
-    except (subprocess.TimeoutExpired, OSError):
-        return None
-    out = (p.stderr or "") + (p.stdout or "")
-    # ebur128 prints per-frame progress lines (I:/LRA:) BEFORE a final "Summary:" block.
-    # Parse inside the Summary so we don't grab an early -70 LUFS gating frame; take the
+def _parse_r128(out: str):
+    # ebur128 prints per-frame progress lines BEFORE a final "Summary:" block.
+    # Parse inside Summary so we don't grab an early -70 LUFS gating frame; take the
     # LAST "Peak: ... dBFS" so true peak wins over sample peak (peak=true prints both).
     seg = out.rsplit("Summary:", 1)[-1] if "Summary:" in out else out
 
@@ -282,7 +274,7 @@ def _loudness(path):
     if si is None:
         return None
     loud = float(si)
-    if not math.isfinite(loud) or loud <= -70:   # -70 = the EBU floor -> no real measurement
+    if not math.isfinite(loud) or loud <= -70:   # -70 = EBU floor -> no real measurement
         return None
     slra = _last(r"\bLRA:\s*(-?\d+(?:\.\d+)?)\s*LU")
     stp = _last(r"Peak:\s*(-?\d+(?:\.\d+)?)\s*dBFS")
@@ -291,23 +283,51 @@ def _loudness(path):
             "truePeak": round(float(stp), 1) if stp else None}
 
 
-def _envelope(path, buckets: int = 40):
-    FRAME = 1000                          # samples per frame (~0.5 s at 2000 Hz mono)
+def analyze_file(path):
+    """{loudness, lra, truePeak, env} (any may be None) or None if ffmpeg/decode fails.
+
+    Single ffmpeg pass: ebur128 runs inline (measuring, passing audio through) before
+    downsampling to 2 kHz mono u8 PCM for the envelope. Halves the SMB reads vs the
+    prior two-process approach (_loudness then _envelope read the file twice each).
+    stderr (R128 summary) is drained by a daemon thread so the pipe never deadlocks."""
+    if not ffmpeg_available():
+        return None
+    FRAME = 1000
+    deadline = time.monotonic() + 180
+    stderr_buf = []
+
     try:
         proc = subprocess.Popen(
             ["ffmpeg", "-hide_banner", "-nostats", "-i", str(path),
-             "-map", "0:a:0", "-ac", "1", "-ar", "2000", "-f", "u8", "-"],
-            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, creationflags=_CF)
+             "-map", "0:a:0",
+             "-af", "ebur128=peak=true,aresample=2000",
+             "-ac", "1", "-f", "u8", "-"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=_CF)
     except OSError:
         return None
+
+    def _drain_stderr():
+        try:
+            stderr_buf.append(proc.stderr.read().decode("utf-8", "replace"))
+        except Exception:
+            pass
+        finally:
+            try:
+                proc.stderr.close()
+            except Exception:
+                pass
+
+    t = threading.Thread(target=_drain_stderr, daemon=True)
+    t.start()
+
     frames, cur, cnt = [], 0, 0
-    deadline = time.monotonic() + 180
+    killed = False
     try:
         while True:
             chunk = proc.stdout.read(65536)
             if not chunk:
                 break
-            for b in chunk:                       # b is 0..255
+            for b in chunk:
                 a = b - 128
                 m = -a if a < 0 else a
                 if m > cur:
@@ -319,13 +339,14 @@ def _envelope(path, buckets: int = 40):
                     cnt = 0
             if time.monotonic() > deadline:
                 proc.kill()
-                return None
+                killed = True
+                break
     except Exception:
         try:
             proc.kill()
         except Exception:
             pass
-        return None
+        killed = True
     finally:
         try:
             proc.stdout.close()
@@ -338,30 +359,31 @@ def _envelope(path, buckets: int = 40):
                 proc.kill()
             except Exception:
                 pass
+
+    t.join(timeout=10)
+
+    if killed:
+        return None
+
     if cnt:
         frames.append(cur)
-    if len(frames) < buckets:
-        return None
-    per = len(frames) / buckets
-    env = []
-    for bk in range(buckets):
-        pk = 0
-        s, e = int(bk * per), int((bk + 1) * per)
-        for i in range(s, min(e, len(frames))):
-            if frames[i] > pk:
-                pk = frames[i]
-        env.append(min(99, _jsround(pk / 128 * 99)))
-    if not any(v > 2 for v in env):
-        return None
-    return "".join(str(v).zfill(2) for v in env)
 
+    loud = _parse_r128(stderr_buf[0] if stderr_buf else "")
 
-def analyze_file(path):
-    """{loudness, lra, truePeak, env} (any may be None) or None if ffmpeg/decode fails."""
-    if not ffmpeg_available():
-        return None
-    loud = _loudness(path)
-    env = _envelope(path)
+    env = None
+    if len(frames) >= 40:
+        per = len(frames) / 40
+        env_list = []
+        for bk in range(40):
+            pk = 0
+            s, e = int(bk * per), int((bk + 1) * per)
+            for i in range(s, min(e, len(frames))):
+                if frames[i] > pk:
+                    pk = frames[i]
+            env_list.append(min(99, _jsround(pk / 128 * 99)))
+        if any(v > 2 for v in env_list):
+            env = "".join(str(v).zfill(2) for v in env_list)
+
     if not loud and not env:
         return None
     return {"loudness": loud["loudness"] if loud else None,
@@ -531,12 +553,20 @@ def enrich_library(cfg, analyze: bool = False, force: bool = False, limit: int =
         sidecar = folder / name
         if not force and sidecar.exists():
             try:
-                newest = max((p.stat().st_mtime for p in catalogue._audio_files(folder, exts)),
-                             default=0)
-                # up to date — but if --analyze was asked and the sidecar only has Tier-1
-                # data, fall through and upgrade it with the ffmpeg measurements.
-                if sidecar.stat().st_mtime >= newest and not _needs_tier2(sidecar, analyze):
-                    continue
+                sidecar_mtime = sidecar.stat().st_mtime
+                # Fast path: if the folder's mtime hasn't advanced past the sidecar, no file
+                # was added/removed after enrichment — skip without stat'ing every track.
+                # Falls through to per-file check on the rare case the folder changed.
+                if folder.stat().st_mtime <= sidecar_mtime:
+                    if not _needs_tier2(sidecar, analyze):
+                        continue
+                else:
+                    newest = max((p.stat().st_mtime for p in catalogue._audio_files(folder, exts)),
+                                 default=0)
+                    # up to date — but if --analyze was asked and the sidecar only has Tier-1
+                    # data, fall through and upgrade it with the ffmpeg measurements.
+                    if sidecar_mtime >= newest and not _needs_tier2(sidecar, analyze):
+                        continue
             except (ValueError, OSError):
                 pass
         try:
