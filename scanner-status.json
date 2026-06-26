@@ -1,26 +1,26 @@
 {
-  "generatedAtUTC": "2026-06-26T05:53:26.982718+00:00",
+  "generatedAtUTC": "2026-06-26T06:03:26.892467+00:00",
   "scanner": {
     "imported": 1954,
-    "review": 2041,
+    "review": 1997,
     "duplicate": 0,
     "failed": 0,
     "decided_total": 7071,
     "decided_15m": 0,
-    "decided_60m": 14,
+    "decided_60m": 7,
     "decided_24h": 95,
     "last_decision_utc": "2026-06-26T05:16:51.489559+00:00",
-    "mins_since_last_decision": 36.6
+    "mins_since_last_decision": 46.6
   },
   "health": {
     "supervisor_running": true,
     "watcher_running": true,
     "enrich_running": true,
-    "watcher_log_age_min": 15.5,
-    "enrich_log_age_min": 14.3,
+    "watcher_log_age_min": 4.0,
+    "enrich_log_age_min": 24.3,
     "watcher_active": true,
     "enrich_active": true
   },
-  "current_watcher_log": "2026-06-26 00:37:58,191 INFO    picardwatch.watcher: Scanning Y:\\SABNZDB\\APPLE AUDIO ...",
+  "current_watcher_log": "2026-06-26 00:59:24,681 INFO    picardwatch.watcher: Scanning Y:\\SABNZDB\\APPLE AUDIO ...",
   "current_enrich_log": "2026-06-26 00:39:11,973 INFO    picardwatch.enrich: enriched Live at Fillmore West (1971) (Live)  [dr=16/measured, -16.5 LUFS]"
 }
