@@ -1,26 +1,26 @@
 {
-  "generatedAtUTC": "2026-06-26T02:23:27.343879+00:00",
+  "generatedAtUTC": "2026-06-26T02:31:29.860956+00:00",
   "scanner": {
-    "imported": 1941,
-    "review": 2232,
-    "duplicate": 2833,
+    "imported": 1942,
+    "review": 2233,
+    "duplicate": 2820,
     "failed": 0,
-    "decided_total": 7006,
-    "decided_15m": 9,
-    "decided_60m": 11,
-    "decided_24h": 24,
-    "last_decision_utc": "2026-06-26T02:23:15.802689+00:00",
-    "mins_since_last_decision": 0.2
+    "decided_total": 7015,
+    "decided_15m": 17,
+    "decided_60m": 20,
+    "decided_24h": 33,
+    "last_decision_utc": "2026-06-26T02:30:52.670497+00:00",
+    "mins_since_last_decision": 0.6
   },
   "health": {
     "supervisor_running": true,
     "watcher_running": true,
     "enrich_running": true,
-    "watcher_log_age_min": 0.2,
-    "enrich_log_age_min": 5.4,
+    "watcher_log_age_min": 0.6,
+    "enrich_log_age_min": 3.0,
     "watcher_active": true,
     "enrich_active": true
   },
-  "current_watcher_log": "2026-06-25 21:23:16,476 INFO    picardwatch: Judging: Edwin Starr-Involved-24BIT-192KHZ-WEB-FLAC-1971-TiMES-xpost.1",
-  "current_enrich_log": "2026-06-25 21:18:05,375 INFO    picardwatch.enrich: enriched Stereolithic (2014) (Album)  [dr=12/measured, -12.1 LUFS]"
+  "current_watcher_log": "2026-06-25 21:30:55,290 INFO    picardwatch: Judging: Linkin Park-Papercuts-24BIT-48KHZ-WEB-FLAC-2024-OBZEN",
+  "current_enrich_log": "2026-06-25 21:28:27,723 INFO    picardwatch.enrich: enriched Bigger, Better, Faster, More! (1992) (Album)  [dr=10/measured, -10.4 LUFS]"
 }
