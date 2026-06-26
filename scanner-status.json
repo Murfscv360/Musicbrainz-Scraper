@@ -1,26 +1,26 @@
 {
-  "generatedAtUTC": "2026-06-26T04:13:27.080119+00:00",
+  "generatedAtUTC": "2026-06-26T04:23:27.107131+00:00",
   "scanner": {
-    "imported": 1949,
+    "imported": 1950,
     "review": 2236,
-    "duplicate": 1434,
+    "duplicate": 1236,
     "failed": 0,
-    "decided_total": 7039,
-    "decided_15m": 5,
-    "decided_60m": 12,
-    "decided_24h": 58,
-    "last_decision_utc": "2026-06-26T04:09:02.674704+00:00",
-    "mins_since_last_decision": 4.4
+    "decided_total": 7042,
+    "decided_15m": 8,
+    "decided_60m": 16,
+    "decided_24h": 62,
+    "last_decision_utc": "2026-06-26T04:23:09.855756+00:00",
+    "mins_since_last_decision": 0.3
   },
   "health": {
     "supervisor_running": true,
     "watcher_running": true,
     "enrich_running": true,
-    "watcher_log_age_min": 4.4,
-    "enrich_log_age_min": 7.9,
+    "watcher_log_age_min": 0.2,
+    "enrich_log_age_min": 17.9,
     "watcher_active": true,
     "enrich_active": true
   },
-  "current_watcher_log": "2026-06-25 23:09:03,793 INFO    picardwatch: Judging: Marvin Gaye-A Tribute To The Great Nat King Cole-24BIT-192KHZ-WEB-FLAC-1965-TiMES",
+  "current_watcher_log": "2026-06-25 23:23:15,080 INFO    picardwatch: Judging: Paul van Dyk and Reznor-Stay-24BIT-WEB-FLAC-2024-AFO",
   "current_enrich_log": "2026-06-25 23:05:36,690 INFO    picardwatch.enrich: enriched Lady Soul (1968) (Album)  [dr=16/measured, -15.9 LUFS]"
 }
