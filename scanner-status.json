@@ -1,26 +1,26 @@
 {
-  "generatedAtUTC": "2026-06-26T02:33:26.991151+00:00",
+  "generatedAtUTC": "2026-06-26T02:43:27.488499+00:00",
   "scanner": {
-    "imported": 1942,
-    "review": 2233,
-    "duplicate": 2699,
+    "imported": 1943,
+    "review": 2235,
+    "duplicate": 2624,
     "failed": 0,
-    "decided_total": 7015,
-    "decided_15m": 12,
-    "decided_60m": 20,
-    "decided_24h": 33,
-    "last_decision_utc": "2026-06-26T02:30:52.670497+00:00",
-    "mins_since_last_decision": 2.6
+    "decided_total": 7022,
+    "decided_15m": 13,
+    "decided_60m": 27,
+    "decided_24h": 40,
+    "last_decision_utc": "2026-06-26T02:41:53.991821+00:00",
+    "mins_since_last_decision": 1.6
   },
   "health": {
     "supervisor_running": true,
     "watcher_running": true,
     "enrich_running": true,
-    "watcher_log_age_min": 2.5,
-    "enrich_log_age_min": 5.0,
+    "watcher_log_age_min": 1.4,
+    "enrich_log_age_min": 5.2,
     "watcher_active": true,
     "enrich_active": true
   },
-  "current_watcher_log": "2026-06-25 21:30:55,290 INFO    picardwatch: Judging: Linkin Park-Papercuts-24BIT-48KHZ-WEB-FLAC-2024-OBZEN",
-  "current_enrich_log": "2026-06-25 21:28:27,723 INFO    picardwatch.enrich: enriched Bigger, Better, Faster, More! (1992) (Album)  [dr=10/measured, -10.4 LUFS]"
+  "current_watcher_log": "2026-06-25 21:42:02,385 INFO    picardwatch: Judging: George Ezra - Staying at Tamara's (2018 Pop Rock) [Flac 24-44]-xpost",
+  "current_enrich_log": "2026-06-25 21:38:18,000 INFO    picardwatch.enrich: enriched Diet Pepsi (2024) (Single)  [dr=10/measured, -9.2 LUFS]"
 }
