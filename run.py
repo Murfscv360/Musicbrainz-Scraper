@@ -160,6 +160,9 @@ def main() -> None:
     ap.add_argument("--delete-review", action="store_true", help="with --tidy-input: DELETE review folders instead of archiving them")
     ap.add_argument("--analyze", action="store_true", help="with --enrich/--carplay: also run ffmpeg loudness/LRA/true-peak/waveform (slow; needs ffmpeg on PATH)")
     ap.add_argument("--reference", action="store_true", help="with --carplay: OPTIONAL online step — backfill missing genres from MusicBrainz (cached)")
+    ap.add_argument("--verify", action="store_true", help="with --carplay: deep per-track integrity check (opens every file); unplayable tracks are excluded + reported")
+    ap.add_argument("--art", action="store_true", help="with --carplay: embed cover art INTO M4As that lack it so CarPlay shows artwork (rewrites those files)")
+    ap.add_argument("--no-organize", action="store_true", help="with --carplay: skip materialising numbered playlist folders (write .m3u8 + browser only)")
     ap.add_argument("--force", action="store_true", help="re-judge even if this exact folder was decided before")
     ap.add_argument("-v", "--verbose", action="store_true")
     args = ap.parse_args()
@@ -243,12 +246,18 @@ def main() -> None:
         # (ffmpeg) and caches sidecars on the drive. Reads audio + writes into _CarPlay only.
         from picardwatch import carplay
         r = carplay.build_car_experience(cfg, out_dir=args.out or None, limit=args.limit,
-                                         reference=args.reference, analyze=args.analyze)
+                                         reference=args.reference, analyze=args.analyze,
+                                         verify=args.verify, art=args.art,
+                                         organize=(False if args.no_organize else None))
         if r.get("error"):
             print(f"CarPlay build FAILED: {r['error']}")
         else:
             print(f"CarPlay: {r['playlists']} playlist(s) from {r['tracks']} tracks / {r['albums']} "
-                  f"albums ({r['enriched']} with measured loudness) -> {r['out']}")
+                  f"albums ({r['enriched']} measured); {r['issues']} track(s) excluded -> {r['out']}")
+            mat = r.get("materialised")
+            if mat:
+                print(f"Organised for play order: {mat['playlists']} folders, "
+                      f"{mat['linked']} linked + {mat['copied']} copied ({mat['copiedGB']} GB) in {mat['root']}")
             print(f"Open the browser: {r['browser']}")
         return
 

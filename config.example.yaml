@@ -88,8 +88,17 @@ carplay:
   out_dir: ""                       # where playlists + index.html + manifest go; "" = <source>/_CarPlay
                                     # (kept ON the drive so the whole experience travels with it)
   relative_paths: true              # track paths relative to out_dir → portable when the drive is a USB stick / phone
-  analyze: false                    # measure loudness/DR with ffmpeg on this run (caches sidecars on the drive).
-                                    # Also: --analyze. Run once; later runs reuse the cached measurements.
+  analyze: false                    # measure loudness/DR + a bass "thump" score with ffmpeg on this run
+                                    # (caches sidecars on the drive). Also: --analyze. Run once; later runs reuse it.
+  verify: false                     # deep per-track integrity: open every file, exclude unplayable tracks.
+                                    # Slower on a big drive (a cheap truncation check always runs). Also: --verify.
+  art: false                        # embed cover art INTO M4As that lack it so CarPlay shows artwork
+                                    # (rewrites those files, on the drive). Also: --art.
+  materialize: link                 # organise the drive for guaranteed play order by writing each theme as a
+                                    # numbered folder (_CarPlay/Playlists/NN - Theme/NNN - Artist - Title.m4a):
+                                    #   link = hardlinks (zero extra space on NTFS; per-file copy fallback)  [default]
+                                    #   copy = real copies (works on exFAT/FAT USB, but DUPLICATES data)
+                                    #   off  = .m3u8 playlists only, no folder reorganisation
   target_lufs: -13.0                # perceived-loudness target for a noisy cabin (streaming norm is -14;
                                     # a touch louder cuts road noise). Drives per-track cabin scoring + sequencing.
   min_artist_gap: 2                 # don't repeat an artist within this many tracks in a playlist

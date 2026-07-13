@@ -109,8 +109,9 @@ python run.py --enrich --analyze   #   managed + AV-resilient:  --start-enrich /
 # 7) Publish the Audio Vault catalogue collection.json (see docs/CATALOGUE.md):
 python run.py --catalogue --push
 
-# 7b) Self-contained Car Audio / CarPlay playlists onto the M4A drive (see docs/CARPLAY.md):
-python run.py --carplay --analyze   #   writes <source>/_CarPlay/ (.m3u8 + sleek offline index.html)
+# 7b) Self-contained, DJ-grade Car Audio / CarPlay experience onto the M4A drive (see docs/CARPLAY.md):
+python run.py --carplay --analyze --verify --art
+#     driving-themed playlists + numbered play-order folders + sleek offline browser, all in <source>/_CarPlay/
 
 # 8) Re-tag + re-organize the existing library to the current standard:
 python run.py --retag
@@ -153,7 +154,7 @@ picardwatch/
   requirements.txt
   run.py                 CLI: --once / --watch / --supervise / --folder / --status / --retag /
                          --enrich / --start-enrich / --stop-enrich / --catalogue [--push] /
-                         --carplay [--analyze] / --stop
+                         --carplay [--analyze --verify --art --no-organize] / --stop
   keepalive.pyw          self-heal launcher (scheduled task revives the supervisor + enrich worker)
   install.ps1 / .bat     one-shot setup;  install-keepalive.ps1 = admin step to register the task
   picardwatch/

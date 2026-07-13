@@ -5,5 +5,6 @@ mutagen>=1.47.0
 requests>=2.31.0
 PyYAML>=6.0
 rich>=13.0
+Pillow>=10.0    # optional: real downscaled cover thumbnails in the --carplay browser (falls back to colour tiles)
 # NOTE: pyacoustid needs the `fpcalc` (Chromaprint) binary on your PATH.
 #   Download: https://acoustid.org/chromaprint  (Picard bundles its own copy, but the judge needs a standalone fpcalc)
