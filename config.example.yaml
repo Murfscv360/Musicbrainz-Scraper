@@ -78,6 +78,27 @@ catalogue:
   file: "collection.json"           # written to the repo root; the Audio Vault web app reads this
   name: "Audio Vault"
 
+# Car Audio / CarPlay experience (opt-in: `python run.py --carplay`). SELF-CONTAINED + LOCAL:
+# reads the M4A car-audio drive + the audiophile.json sidecars and writes CarPlay-ready .m3u8
+# playlists (drive profiles + era/genre) + a sleek offline browser (index.html) INTO the drive.
+# Non-destructive, no Plex, no cloud — reads audio + writes into <source>/_CarPlay only
+# (with --analyze it also caches audiophile.json sidecars next to each album, on the drive).
+carplay:
+  source: "G:/CAR AUDIO"            # the M4A car-audio drive to curate (leave "" to use paths.library)
+  out_dir: ""                       # where playlists + index.html + manifest go; "" = <source>/_CarPlay
+                                    # (kept ON the drive so the whole experience travels with it)
+  relative_paths: true              # track paths relative to out_dir → portable when the drive is a USB stick / phone
+  analyze: false                    # measure loudness/DR with ffmpeg on this run (caches sidecars on the drive).
+                                    # Also: --analyze. Run once; later runs reuse the cached measurements.
+  target_lufs: -13.0                # perceived-loudness target for a noisy cabin (streaming norm is -14;
+                                    # a touch louder cuts road noise). Drives per-track cabin scoring + sequencing.
+  min_artist_gap: 2                 # don't repeat an artist within this many tracks in a playlist
+  max_per_playlist: 500             # cap a themed playlist (keeps the most cabin-suitable; 0 = no cap)
+  min_playlist_tracks: 8            # drop a themed playlist thinner than this
+  top_genres: 12                    # how many genre playlists to emit (most-populous first)
+  reference: false                  # OPTIONAL online extra: backfill missing genres from MusicBrainz (cached).
+                                    # Off by default so the build stays fully offline. Also: --reference
+
 plex:
   enabled: false
   host:    "http://127.0.0.1:32400"
