@@ -14,7 +14,7 @@ Input\Album\ ─► watcher ─► judge (fpcalc+AcoustID+MB) ─► perfect? �
                                                          └─ not perfect ─► leave in place + review report
 ```
 
-**Docs:** [Handoff](HANDOFF.md) · [Architecture](docs/ARCHITECTURE.md) · [Design](docs/DESIGN.md) · [Enrichment](docs/ENRICHMENT.md) · [Catalogue → Audio Vault](docs/CATALOGUE.md)
+**Docs:** [Handoff](HANDOFF.md) · [Architecture](docs/ARCHITECTURE.md) · [Design](docs/DESIGN.md) · [Enrichment](docs/ENRICHMENT.md) · [Catalogue → Audio Vault](docs/CATALOGUE.md) · [Car Audio → CarPlay](docs/CARPLAY.md)
 
 ## Project status — _2026-06-18_
 
@@ -109,6 +109,10 @@ python run.py --enrich --analyze   #   managed + AV-resilient:  --start-enrich /
 # 7) Publish the Audio Vault catalogue collection.json (see docs/CATALOGUE.md):
 python run.py --catalogue --push
 
+# 7b) Self-contained, DJ-grade Car Audio / CarPlay experience onto the M4A drive (see docs/CARPLAY.md):
+python run.py --carplay --analyze --verify --art
+#     driving-themed playlists + numbered play-order folders + sleek offline browser, all in <source>/_CarPlay/
+
 # 8) Re-tag + re-organize the existing library to the current standard:
 python run.py --retag
 
@@ -149,7 +153,8 @@ picardwatch/
   config.yaml            run config (copied from config.example.yaml; git-ignored)
   requirements.txt
   run.py                 CLI: --once / --watch / --supervise / --folder / --status / --retag /
-                         --enrich / --start-enrich / --stop-enrich / --catalogue [--push] / --stop
+                         --enrich / --start-enrich / --stop-enrich / --catalogue [--push] /
+                         --carplay [--analyze --verify --art --no-organize] / --stop
   keepalive.pyw          self-heal launcher (scheduled task revives the supervisor + enrich worker)
   install.ps1 / .bat     one-shot setup;  install-keepalive.ps1 = admin step to register the task
   picardwatch/
@@ -170,6 +175,7 @@ picardwatch/
     winutil.py           keep child processes (fpcalc/ffmpeg) windowless
     enrich.py            audiophile enrichment -> audiophile.json   (docs/ENRICHMENT.md)
     catalogue.py         Audio Vault collection.json                (docs/CATALOGUE.md)
+    carplay.py           self-contained Car Audio/CarPlay playlists (docs/CARPLAY.md)
     retag.py             re-tag/re-organize the existing library
     plex.py              Plex section scan;  report.py  review report;  status.py  progress
 ```

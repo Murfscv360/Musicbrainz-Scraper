@@ -149,6 +149,7 @@ def main() -> None:
     mode.add_argument("--start-enrich", action="store_true", help="clear stop/done flags and launch the enrichment worker (Tier-2) in the background; it auto-restarts via the keepalive task")
     mode.add_argument("--stop-enrich", action="store_true", help="ask the enrichment worker to finish its current album, stop, and not auto-restart")
     mode.add_argument("--catalogue", action="store_true", help="write a metadata catalogue (catalogue.json + README.md) of the library to --out")
+    mode.add_argument("--carplay", action="store_true", help="curate CarPlay-ready .m3u8 playlists (drive profiles + era/genre) from the car-audio source into carplay.out_dir; non-destructive")
     mode.add_argument("--supervise", action="store_true", help="keep the watcher alive: (re)start run.py --watch whenever it stops or hangs")
     mode.add_argument("--stop", action="store_true", help="ask a running supervisor/watcher to finish the current album and shut down cleanly")
     ap.add_argument("--dry-run", action="store_true", help="judge + report only; never move files")
@@ -157,7 +158,11 @@ def main() -> None:
     ap.add_argument("--push", action="store_true", help="with --catalogue: git commit + push collection.json to its repo")
     ap.add_argument("--vacuum", action="store_true", help="with --prune-cache: VACUUM to reclaim freed space (needs the watcher stopped)")
     ap.add_argument("--delete-review", action="store_true", help="with --tidy-input: DELETE review folders instead of archiving them")
-    ap.add_argument("--analyze", action="store_true", help="with --enrich: also run ffmpeg loudness/LRA/true-peak/waveform (slow; needs ffmpeg on PATH)")
+    ap.add_argument("--analyze", action="store_true", help="with --enrich/--carplay: also run ffmpeg loudness/LRA/true-peak/waveform (slow; needs ffmpeg on PATH)")
+    ap.add_argument("--reference", action="store_true", help="with --carplay: OPTIONAL online step — backfill missing genres from MusicBrainz (cached)")
+    ap.add_argument("--verify", action="store_true", help="with --carplay: deep per-track integrity check (opens every file); unplayable tracks are excluded + reported")
+    ap.add_argument("--art", action="store_true", help="with --carplay: embed cover art INTO M4As that lack it so CarPlay shows artwork (rewrites those files)")
+    ap.add_argument("--no-organize", action="store_true", help="with --carplay: skip materialising numbered playlist folders (write .m3u8 + browser only)")
     ap.add_argument("--force", action="store_true", help="re-judge even if this exact folder was decided before")
     ap.add_argument("-v", "--verbose", action="store_true")
     args = ap.parse_args()
@@ -172,6 +177,7 @@ def main() -> None:
     log_file = ("supervisor.log" if args.supervise else
                 "enrich.log" if args.enrich else
                 "catalogue.log" if args.catalogue else
+                "carplay.log" if args.carplay else
                 "tidy.log" if args.tidy_input else
                 "picardwatch.log")
     logging.basicConfig(
@@ -231,6 +237,28 @@ def main() -> None:
               f"{st['tracks']} tracks, {st['analyzed']} enriched -> {repo}\\{fname}")
         if args.push:
             print("Published." if catalogue.publish(repo, fname) else "Push FAILED (see logs/catalogue.log).")
+        return
+
+    if args.carplay:
+        # Self-contained, local-only Car Audio release: curate CarPlay-ready .m3u8 playlists +
+        # a sleek offline browser INTO the drive (default <source>/_CarPlay/), from the M4A tags
+        # and the audiophile.json sidecars. With --analyze it measures loudness/DR itself
+        # (ffmpeg) and caches sidecars on the drive. Reads audio + writes into _CarPlay only.
+        from picardwatch import carplay
+        r = carplay.build_car_experience(cfg, out_dir=args.out or None, limit=args.limit,
+                                         reference=args.reference, analyze=args.analyze,
+                                         verify=args.verify, art=args.art,
+                                         organize=(False if args.no_organize else None))
+        if r.get("error"):
+            print(f"CarPlay build FAILED: {r['error']}")
+        else:
+            print(f"CarPlay: {r['playlists']} playlist(s) from {r['tracks']} tracks / {r['albums']} "
+                  f"albums ({r['enriched']} measured); {r['issues']} track(s) excluded -> {r['out']}")
+            mat = r.get("materialised")
+            if mat:
+                print(f"Organised for play order: {mat['playlists']} folders, "
+                      f"{mat['linked']} linked + {mat['copied']} copied ({mat['copiedGB']} GB) in {mat['root']}")
+            print(f"Open the browser: {r['browser']}")
         return
 
     if args.supervise:
